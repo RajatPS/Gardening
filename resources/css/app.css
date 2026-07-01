@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+@layer base {
+    :root {
+        --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+            'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        letter-spacing: 0;
+    }
+
+    input,
+    textarea,
+    button,
+    a {
+        outline-color: #065f46;
+        outline-offset: 2px;
+    }
+}
