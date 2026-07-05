@@ -40,7 +40,7 @@ class OrderController extends Controller
         // Pagination
         $orders = $query->paginate(15);
 
-        return view('admin.orders.index', compact('orders'));
+        return view('admin.order-management', compact('orders'));
     }
 
     public function show($id)
@@ -51,7 +51,7 @@ class OrderController extends Controller
         $items = DB::table('order_items')->where('order_id', $id)->get();
         $customer = DB::table('users')->where('id', $order->user_id)->first();
 
-        return view('admin.orders.show', compact('order', 'items', 'customer'));
+        return view('admin.order-management', compact('order', 'items', 'customer'));
     }
 
     public function updateStatus(Request $request, $id)

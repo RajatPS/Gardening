@@ -40,7 +40,7 @@ class UserController extends Controller
         // Pagination
         $users = $query->paginate(15);
 
-        return view('admin.users.index', compact('users'));
+        return view('admin.user-management', compact('users'));
     }
 
     public function show($id)
@@ -51,13 +51,13 @@ class UserController extends Controller
         $subscriptions = $user->subscriptions()->latest()->paginate(10);
         $payments = $user->payments()->latest()->paginate(10);
 
-        return view('admin.users.show', compact('user', 'orders', 'appointments', 'subscriptions', 'payments'));
+        return view('admin.user-management', compact('user', 'orders', 'appointments', 'subscriptions', 'payments'));
     }
 
     public function edit($id)
     {
         $user = User::findOrFail($id);
-        return view('admin.users.edit', compact('user'));
+        return view('admin.user-management', compact('user'));
     }
 
     public function update(Request $request, $id)

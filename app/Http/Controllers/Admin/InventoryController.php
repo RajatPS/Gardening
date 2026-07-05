@@ -39,7 +39,7 @@ class InventoryController extends Controller
         // Pagination
         $inventory = $query->paginate(15);
 
-        return view('admin.inventory.index', compact('inventory'));
+        return view('admin.inventory-management', compact('inventory'));
     }
 
     public function addStock(Request $request, $id)

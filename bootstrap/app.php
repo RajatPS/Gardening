@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'staff' => \App\Http\Middleware\StaffMiddleware::class,
+            'dynamic-root-url' => \App\Http\Middleware\SetDynamicRootUrl::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\SetDynamicRootUrl::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

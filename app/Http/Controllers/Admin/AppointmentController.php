@@ -37,13 +37,13 @@ class AppointmentController extends Controller
         // Pagination
         $appointments = $query->paginate(15);
 
-        return view('admin.appointments.index', compact('appointments'));
+        return view('admin.appointment-management', compact('appointments'));
     }
 
     public function show($id)
     {
         $appointment = ServiceBooking::with('user', 'staff')->findOrFail($id);
-        return view('admin.appointments.show', compact('appointment'));
+        return view('admin.appointment-management', compact('appointment'));
     }
 
     public function assignStaff(Request $request, $id)

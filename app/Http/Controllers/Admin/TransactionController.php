@@ -56,7 +56,7 @@ class TransactionController extends Controller
         // Pagination
         $transactions = $query->paginate(15);
 
-        return view('admin.transactions.index', compact('transactions'));
+        return view('admin.transaction-management', compact('transactions'));
     }
 
     public function show($id)
@@ -67,6 +67,6 @@ class TransactionController extends Controller
         $user = DB::table('users')->where('id', $transaction->user_id)->first();
         $order = DB::table('orders')->where('id', $transaction->order_id)->first();
 
-        return view('admin.transactions.show', compact('transaction', 'user', 'order'));
+        return view('admin.transaction-management', compact('transaction', 'user', 'order'));
     }
 }

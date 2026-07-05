@@ -3,6 +3,9 @@
 @section('title', 'Staff Management')
 
 @section('content')
+@php
+    $staffMembers = $staffMembers ?? $staff ?? collect();
+@endphp
 <div class="page-header mb-4">
     <h1 class="page-title">Staff Management</h1>
     <p class="text-muted">Manage your staff members</p>
@@ -60,7 +63,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($staff as $member)
+                    @forelse($staffMembers as $member)
                         <tr>
                             <td>#{{ $member->id }}</td>
                             <td>
@@ -105,7 +108,9 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-4">
-                                <p class="text-muted">No staff members found</p>
+                                <div class="alert alert-info mb-0">
+                                    No staff members available yet.
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -113,11 +118,16 @@
             </table>
         </div>
 
-        <!-- Pagination -->
+        @if($staffMembers instanceof \Illuminate\Contracts\Pagination\Paginator || $staffMembers instanceof \Illuminate\Contracts\Pagination\CursorPaginator)
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <p class="text-muted mb-0">Showing {{ $staff->count() }} of {{ $staff->total() }} staff members</p>
-            {{ $staff->links() }}
+            <p class="text-muted mb-0">Showing {{ $staffMembers->count() }} of {{ $staffMembers->total() }} staff members</p>
+            {{ $staffMembers->links() }}
         </div>
+        @else
+        <div class="mt-4">
+            <p class="text-muted mb-0">Showing {{ $staffMembers->count() }} staff member(s)</p>
+        </div>
+        @endif
     </div>
 </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AppointmentLocalityService;
 use Illuminate\Contracts\View\View;
 
 class PlatformController extends Controller
@@ -84,10 +85,14 @@ class PlatformController extends Controller
             'images.*' => 'nullable|image|max:5120'
         ]);
 
+        $localityService = new AppointmentLocalityService();
+        $city = $localityService->resolveBookingCity(null, $validated['address'] ?? null);
+
         $data = [
             'service_type' => $validated['service_type'],
             'preferred_at' => $validated['preferred_at'] ?? null,
             'address_line' => $validated['address'] ?? null,
+            'city' => $city,
             'customer_notes' => $validated['notes'] ?? null,
             'status' => 'pending',
         ];

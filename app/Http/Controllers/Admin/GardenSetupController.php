@@ -10,6 +10,6 @@ class GardenSetupController extends Controller
     public function index()
     {
         $items = GardenSetup::orderBy('created_at','desc')->paginate(20);
-        return view('admin.garden-setups.index', compact('items'));
+        return view('admin.garden-setup-management', compact('items'));
     }
 }

@@ -20,3 +20,6 @@ Route::controller(PlatformController::class)->group(function (): void {
 
 // Admin Panel Routes
 require base_path('routes/admin.php');
+
+// Staff Panel Routes
+require base_path('routes/staff.php');

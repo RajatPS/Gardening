@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\{
     DashboardController,
     UserController,
     StaffController,
-    ProductController,
+    ProductController,                                                                                                                                                          
     OrderController,
     AppointmentController,
     SubscriptionController,
@@ -41,7 +41,6 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
             Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         });
-
         // Staff Management
         Route::prefix('staff')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->name('admin.staff.index');

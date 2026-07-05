@@ -52,12 +52,12 @@ class AuditLogController extends Controller
         // Pagination
         $auditLogs = $query->paginate(15);
 
-        return view('admin.audit-logs.index', compact('auditLogs'));
+        return view('admin.audit-log-management', compact('auditLogs'));
     }
 
     public function show($id)
     {
         $auditLog = AuditLog::with('user')->findOrFail($id);
-        return view('admin.audit-logs.show', compact('auditLog'));
+        return view('admin.audit-log-management', compact('auditLog'));
     }
 }

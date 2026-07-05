@@ -33,7 +33,7 @@ class SubscriptionController extends Controller
         // Pagination
         $subscriptions = $query->paginate(15);
 
-        return view('admin.subscriptions.index', compact('subscriptions'));
+        return view('admin.subscription-management', compact('subscriptions'));
     }
 
     public function show($id)
@@ -41,7 +41,7 @@ class SubscriptionController extends Controller
         $subscription = SubscriptionPlan::with('user', 'plan')->findOrFail($id);
         $history = $subscription->history()->paginate(10);
 
-        return view('admin.subscriptions.show', compact('subscription', 'history'));
+        return view('admin.subscription-management', compact('subscription', 'history'));
     }
 
     public function renew($id)

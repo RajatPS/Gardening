@@ -28,10 +28,21 @@
                             <input name="remind_at" required type="datetime-local" class="rounded-md border p-2">
                             <select name="type" class="rounded-md border p-2">
                                 <option value="Watering">Watering</option>
+                                <option value="Fertilizer">Fertilizer</option>
                                 <option value="Medicine">Medicine</option>
                                 <option value="Service">Service</option>
                                 <option value="Other">Other</option>
                             </select>
+                            <select name="frequency" class="rounded-md border p-2">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="every_3_months">Every 3 months</option>
+                            </select>
+                            <label class="flex items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" name="plant_care" value="1" checked>
+                                Create recurring plant-care reminders
+                            </label>
                             <div class="flex gap-2">
                                 <button class="rounded-md bg-emerald-900 px-4 py-2 text-white">Schedule Reminder</button>
                                 <button type="button" id="testAlarm" class="rounded-md border px-4 py-2">Test Alarm</button>

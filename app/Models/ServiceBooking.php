@@ -13,6 +13,9 @@ class ServiceBooking extends Model
         'service_type',
         'status',
         'preferred_at',
+        'booking_date',
+        'time_slot',
+        'assigned_staff_id',
         'address_line',
         'city',
         'customer_notes',
@@ -21,11 +24,17 @@ class ServiceBooking extends Model
 
     protected $casts = [
         'preferred_at' => 'datetime',
+        'booking_date' => 'datetime',
         'uploaded_images' => 'array',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_staff_id');
     }
 }

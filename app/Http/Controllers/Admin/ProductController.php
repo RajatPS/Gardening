@@ -46,12 +46,12 @@ class ProductController extends Controller
         // Pagination
         $products = $query->paginate(15);
 
-        return view('admin.products.index', compact('products'));
+        return view('admin.product-management', compact('products'));
     }
 
     public function create()
     {
-        return view('admin.products.create');
+        return view('admin.product-management');
     }
 
     public function store(Request $request)
@@ -97,13 +97,13 @@ class ProductController extends Controller
     public function show($id)
     {
         $product = Product::findOrFail($id);
-        return view('admin.products.show', compact('product'));
+        return view('admin.product-management', compact('product'));
     }
 
     public function edit($id)
     {
         $product = Product::findOrFail($id);
-        return view('admin.products.edit', compact('product'));
+        return view('admin.product-management', compact('product'));
     }
 
     public function update(Request $request, $id)

@@ -125,7 +125,7 @@
             <button type="submit" class="btn-login">Login</button>
 
             <div class="login-footer">
-                <a href="{{ route('admin.forgot-password') }}">Signup for a new account. </a>
+                <a href="{{ route('staff.register') }}">Sign up for a new staff account.</a>
             </div>
 
             <div class="login-footer">

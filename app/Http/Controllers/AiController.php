@@ -20,6 +20,7 @@ class AiController extends Controller
         $question = $validated['question'] ?? '';
         $imageUrls = [];
 
+        // 1. Process images if the user uploaded them
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $img) {
                 $path = $img->store('ai_images', 'public');
@@ -31,86 +32,77 @@ class AiController extends Controller
             Dotenv::createMutable(base_path(), '.env')->safeLoad();
         }
 
-        $openAiApiKey = config('services.openai.key') ?? env('OPENAI_API_KEY');
-        $deepseekApiKey = config('services.deepseek.key') ?? env('DEEPSEEK_API_KEY');
+        // Fetch OpenRouter configurations safely
+        $apiKey = env('OPENAI_API_KEY');
+        $endpoint = rtrim(env('OPENAI_API_BASE_URI', 'https://openrouter.ai/api/v1'), '/') . '/chat/completions';
+        $model = env('OPENAI_MODEL', 'openrouter/free');
 
-        if (!empty($openAiApiKey)) {
-            $apiKey = $openAiApiKey;
-            $endpoint = rtrim(config('services.openai.base_uri', env('OPENAI_API_BASE_URI', 'https://api.openai.com/v1')), '/') . '/chat/completions';
-            $model = env('OPENAI_MODEL', 'gpt-4o-mini');
-        } elseif (!empty($deepseekApiKey)) {
-            $apiKey = $deepseekApiKey;
-            $endpoint = rtrim(config('services.deepseek.base_uri', env('DEEPSEEK_API_BASE_URI', 'https://api.deepseek.ai/v1')), '/') . '/chat/completions';
-            $model = env('DEEPSEEK_MODEL', 'gpt-4o-mini');
-        } else {
-            return response()->json(['error' => 'AI request API key not configured. Set OPENAI_API_KEY or DEEPSEEK_API_KEY in .env'], 500);
+        if (empty($apiKey)) {
+            return response()->json(['error' => 'AI request API key not configured. Please check your OPENAI_API_KEY in .env.'], 500);
         }
 
         $system = "You are a helpful gardening assistant. When given images, analyze plant health, identify likely issues, suggest immediate care steps, recommended products, and next diagnostics. Keep answers concise and use bullets where appropriate.";
 
-        $userPrompt = $question;
+        // 2. Build the message history
+        $messages = [
+            ['role' => 'system', 'content' => $system]
+        ];
+
+        // Format payload based on whether images exist or if it's text-only
         if (!empty($imageUrls)) {
-            $userPrompt .= "\n\nImages:\n" . implode("\n", $imageUrls);
+            $userContent = [
+                ['type' => 'text', 'text' => $question ?: 'Analyze these images based on your instructions.']
+            ];
+
+            foreach ($imageUrls as $url) {
+                $userContent[] = [
+                    'type' => 'image_url',
+                    'image_url' => ['url' => $url]
+                ];
+            }
+
+            $messages[] = ['role' => 'user', 'content' => $userContent];
+        } else {
+            if (empty($question)) {
+                return response()->json(['error' => 'Please provide a text question or upload an image.'], 400);
+            }
+            
+            $messages[] = ['role' => 'user', 'content' => $question];
         }
 
         $payload = [
-            'messages' => [
-                ['role' => 'system', 'content' => $system],
-                ['role' => 'user', 'content' => $userPrompt],
-            ],
+            'messages' => $messages,
             'max_tokens' => 800,
+            'model' => $model
         ];
-
-        if (!empty($model)) {
-            $payload['model'] = $model;
-        }
 
         try {
             $response = Http::withToken($apiKey)
                 ->accept('application/json')
-                ->timeout(15)
-                ->retry(2, 100)
+                ->withoutVerifying() // Keeps connectivity alive on local development engines
+                ->withHeaders([
+                    'HTTP-Referer' => env('APP_URL', 'http://localhost'),
+                    'X-Title'      => 'VerdantOps Application',
+                ])
+                ->timeout(35) // Increased allowance slightly for standard imaging workloads
+                ->retry(2, 150)
                 ->post($endpoint, $payload);
         } catch (\Throwable $e) {
-            Log::error('AI request exception', [
-                'message' => $e->getMessage(),
-                'endpoint' => $endpoint,
-            ]);
-
-            return response()->json(['error' => 'AI request failed. Please try again later.'], 500);
+            Log::error('AI request exception occurred', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'AI infrastructure link failed. Please try again.'], 500);
         }
 
         if ($response->failed()) {
-            $status = $response->status();
-            $bodyText = $response->body();
-            Log::error('AI response failed', [
-                'status' => $status,
-                'body' => $bodyText,
-                'endpoint' => $endpoint,
+            Log::error('AI API execution error diagnostic', [
+                'status' => $response->status(),
+                'body' => $response->body()
             ]);
-
-            if ($status === 401) {
-                return response()->json(['error' => 'AI authentication failed. Check API key configuration.'], 500);
-            }
-
-            return response()->json(['error' => 'AI request failed. Please try again later.'], 500);
+            return response()->json(['error' => 'AI processing failed. Check log analytics for details.'], 500);
         }
 
         $body = $response->json();
-
-        // Try multiple possible response locations
-        $content = null;
-        if (isset($body['choices'][0]['message']['content'])) {
-            $content = $body['choices'][0]['message']['content'];
-        } elseif (isset($body['choices'][0]['text'])) {
-            $content = $body['choices'][0]['text'];
-        } elseif (isset($body['result'])) {
-            $content = $body['result'];
-        } else {
-            $content = json_encode($body);
-        }
+        $content = $body['choices'][0]['message']['content'] ?? json_encode($body);
 
         return response()->json(['result' => $content]);
     }
 }
-

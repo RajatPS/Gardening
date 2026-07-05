@@ -45,4 +45,10 @@ return [
         'base_uri' => env('DEEPSEEK_API_BASE_URI', 'https://api.deepseek.ai/v1'),
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'from' => env('TWILIO_FROM'),
+    ],
+
 ];

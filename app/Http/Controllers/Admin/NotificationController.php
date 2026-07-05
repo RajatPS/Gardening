@@ -10,12 +10,12 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        return view('admin.notifications.index');
+        return view('admin.notification-management');
     }
 
     public function create()
     {
-        return view('admin.notifications.create');
+        return view('admin.notification-create');
     }
 
     public function store(Request $request)

@@ -35,12 +35,14 @@ class StaffController extends Controller
         // Pagination
         $staff = $query->paginate(15);
 
-        return view('admin.staff.index', compact('staff'));
+        return view('admin.staff-management', compact('staff'));
     }
 
     public function create()
     {
-        return view('admin.staff.create');
+        $staff = User::where('role', 'staff')->paginate(15);
+
+        return view('admin.staff-management', compact('staff'))->with('createMode', true);
     }
 
     public function store(Request $request)
@@ -66,14 +68,17 @@ class StaffController extends Controller
     {
         $staff = User::findOrFail($id);
         $assignedTasks = $staff->assignedTasks()->paginate(10);
+        $staffList = User::where('role', 'staff')->paginate(15);
 
-        return view('admin.staff.show', compact('staff', 'assignedTasks'));
+        return view('admin.staff-management', compact('staff', 'assignedTasks', 'staffList'))->with('showMode', true);
     }
 
     public function edit($id)
     {
         $staff = User::findOrFail($id);
-        return view('admin.staff.edit', compact('staff'));
+        $staffList = User::where('role', 'staff')->paginate(15);
+
+        return view('admin.staff-management', compact('staff', 'staffList'))->with('editMode', true);
     }
 
     public function update(Request $request, $id)

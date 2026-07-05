@@ -3,6 +3,19 @@
 @section('title', 'Appointments')
 
 @section('content')
+@php
+    $appointmentList = isset($appointments) ? $appointments : collect();
+    if ($appointmentList instanceof \Illuminate\Contracts\Pagination\Paginator || $appointmentList instanceof \Illuminate\Contracts\Pagination\CursorPaginator) {
+        $totalCount = $appointmentList->total();
+        $displayCount = $appointmentList->count();
+        $showPagination = true;
+    } else {
+        $totalCount = $appointmentList->count();
+        $displayCount = $appointmentList->count();
+        $showPagination = false;
+    }
+@endphp
+
 <div class="page-header mb-4">
     <h1 class="page-title">Appointments</h1>
     <p class="text-muted">Manage service bookings and appointments</p>
@@ -61,7 +74,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($appointments as $appointment)
+                    @forelse($appointmentList as $appointment)
                         <tr>
                             <td>#{{ $appointment->id }}</td>
                             <td>{{ $appointment->user->name ?? 'N/A' }}</td>
@@ -95,7 +108,9 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-4">
-                                <p class="text-muted">No appointments found</p>
+                                <div class="alert alert-info mb-0">
+                                    No appointments available yet.
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -103,11 +118,16 @@
             </table>
         </div>
 
-        <!-- Pagination -->
+        @if($showPagination)
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <p class="text-muted mb-0">Showing {{ $appointments->count() }} of {{ $appointments->total() }} appointments</p>
-            {{ $appointments->links() }}
+            <p class="text-muted mb-0">Showing {{ $displayCount }} of {{ $totalCount }} appointments</p>
+            {{ $appointmentList->links() }}
         </div>
+        @else
+        <div class="mt-4">
+            <p class="text-muted mb-0">Showing {{ $displayCount }} appointment(s)</p>
+        </div>
+        @endif
     </div>
 </div>
 
