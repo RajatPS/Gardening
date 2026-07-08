@@ -24,7 +24,7 @@ Route::controller(PlatformController::class)->group(function (): void {
 
 Route::middleware(['web'])->group(function (): void {
     Route::get('/auth/google/redirect', [\App\Http\Controllers\CustomerAuthController::class, 'googleRedirect'])->name('customer.google.redirect');
-    Route::get('/customer/google/redirect', [\App\Http\Controllers\CustomerAuthController::class, 'googleRedirect']);
+    Route::get('/customer/google/redirect', [\App\Http\Controllers\CustomerAuthController::clyass, 'googleRedirect']);
     Route::get('/auth/google/callback', [\App\Http\Controllers\CustomerAuthController::class, 'googleCallback'])->name('customer.google.callback');
     Route::get('/customer/google/callback', [\App\Http\Controllers\CustomerAuthController::class, 'googleCallback']);
     Route::get('/customer/login', [\App\Http\Controllers\CustomerAuthController::class, 'loginForm'])->name('customer.login');
