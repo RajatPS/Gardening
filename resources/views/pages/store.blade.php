@@ -23,7 +23,7 @@
                                     @csrf
                                     <input type="hidden" name="product_name" value="{{ $product['name'] }}">
                                     <input type="hidden" name="product_category" value="{{ $product['category'] }}">
-                                    <input type="hidden" name="price" value="{{ strip_tags($product['price']) }}">
+                                    <input type="hidden" name="price" value="{{ $product['price_value'] ?? 0 }}">
                                     <input type="hidden" name="image_url" value="{{ $product['image'] }}">
                                     <button type="submit" class="w-full rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Add to Cart</button>
                                 </form>
@@ -31,7 +31,7 @@
                                     @csrf
                                     <input type="hidden" name="product_name" value="{{ $product['name'] }}">
                                     <input type="hidden" name="product_category" value="{{ $product['category'] }}">
-                                    <input type="hidden" name="price" value="{{ strip_tags($product['price']) }}">
+                                    <input type="hidden" name="price" value="{{ $product['price_value'] ?? 0 }}">
                                     <input type="hidden" name="image_url" value="{{ $product['image'] }}">
                                     <button type="submit" class="w-full rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">Save</button>
                                 </form>

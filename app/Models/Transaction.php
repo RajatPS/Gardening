@@ -9,12 +9,15 @@ class Transaction extends Model
 {
     protected $fillable = [
         'user_id',
+        'subscription_id',
         'order_id',
         'transaction_id',
         'amount',
         'payment_method',
+        'payment_gateway',
         'status',
         'payment_details',
+        'gateway_response',
         'response',
     ];
 
@@ -23,6 +26,7 @@ class Transaction extends Model
         return [
             'amount' => 'decimal:2',
             'payment_details' => 'array',
+            'gateway_response' => 'array',
         ];
     }
 

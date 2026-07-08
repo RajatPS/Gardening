@@ -4,18 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'VerdantOps') | Plant Nursery & Garden Management</title>
+    <title>@yield('title', 'Gardening') | Plant Nursery & Garden Management</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-stone-50 text-slate-900 antialiased">
     <div class="min-h-screen">
+        @php
+            $hideNavbar = request()->routeIs(['customer.login', 'customer.register', 'customer.google.redirect']);
+        @endphp
+        @if (! $hideNavbar)
         <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/92 backdrop-blur">
             <div class="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center px-4 py-3 sm:px-6 lg:px-8">
                 
                 <a href="{{ route('home') }}" class="flex gap-3 pl-2 flex-shrink-0">
-                    <span class="grid h-10 w-10 rounded-md bg-emerald-900 text-sm font-bold text-white items-center justify-center">VO</span>
+                    <span class="grid h-10 w-10 rounded-md bg-emerald-900 text-sm font-bold text-white items-center justify-center">G</span>
                     <span class="hidden sm:block">
-                        <span class="block text-base font-semibold tracking-normal text-slate-950">VerdantOps</span>
+                        <span class="block text-base font-semibold tracking-normal text-slate-950">Gardening</span>
                         <span class="block text-xs font-medium text-slate-500">Nursery, care and AI plant support</span>
                     </span>
                 </a>
@@ -38,14 +42,33 @@
                     <a href="{{ route('subscriptions') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Plans</a>
                     <a href="{{ route('ai-tools') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">AI Tools</a>
                     <a href="{{ route('reminders') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Reminders</a>
-                    <a href="{{ route('dashboard') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Dashboard</a>
                     <a href="{{ route('operations') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Operations</a>
                 </nav>
 
                 <div class="flex items-center justify-end gap-4 flex-shrink-0">
                     <div class="relative">
-                        <button id="userMenuButton" class="flex items-center">
-                            <div class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-900 border border-emerald-200">JD</div>
+                        @php
+                            $authUser = auth()->user();
+                            $profileLabel = auth()->check() ? ($authUser->name ?? $authUser->email ?? 'User') : 'Guest';
+                            $profileInitials = 'G';
+                            if (auth()->check()) {
+                                $nameParts = preg_split('/\s+/', trim($profileLabel));
+                                $initials = '';
+                                foreach ($nameParts as $part) {
+                                    if ($part !== '') {
+                                        $initials .= strtoupper(substr($part, 0, 1));
+                                    }
+                                }
+                                $profileInitials = strlen($initials) >= 2 ? substr($initials, 0, 2) : ($initials ?: 'U');
+                            }
+                        @endphp
+                        <button id="userMenuButton" class="flex items-center gap-2 rounded-full">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100 text-xs font-bold text-emerald-900">
+                                {{ $profileInitials }}
+                            </div>
+                            @if (!auth()->check())
+                                <span class="hidden text-sm font-medium text-slate-700 sm:inline">Guest</span>
+                            @endif
                         </button>
                         <div id="userMenu" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 hidden z-50">
                             <a href="{{ route('customer.orders') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Orders</a>
@@ -66,13 +89,13 @@
                 <a href="{{ route('subscriptions') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Plans</a>
                 <a href="{{ route('ai-tools') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">AI Tools</a>
                 <a href="{{ route('reminders') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Reminders</a>
-                <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Dashboard</a>
                 <a href="{{ route('operations') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Operations</a>
                 <a href="{{ route('customer.cart') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Cart</a>
                 <a href="{{ route('customer.orders') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Orders</a>
                 <a href="{{ route('customer.saved-products') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Saved Products</a>
             </div>
         </header>
+        @endif
 
         <main>@yield('content')</main>
     </div>

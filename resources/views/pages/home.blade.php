@@ -13,6 +13,20 @@
                 <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
                     A Laravel foundation for plant commerce, gardening services, subscriptions, reminders, expert communication, AI plant help, disease detection, and staff operations.
                 </p>
+                @guest
+                    <div class="mt-8 rounded-lg border border-emerald-100 bg-emerald-50/80 p-4 shadow-sm sm:max-w-xl">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-emerald-900">New here?</p>
+                                <p class="mt-1 text-sm text-emerald-800">Create an account to save plants, manage appointments, and keep your garden plans organized.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="{{ route('customer.register') }}" class="rounded-md bg-emerald-900 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-emerald-800">Sign up</a>
+                                <a href="{{ route('customer.login') }}" class="rounded-md border border-emerald-200 bg-white px-4 py-2 text-center text-sm font-semibold text-emerald-800 transition hover:border-emerald-800 hover:text-emerald-900">Log in</a>
+                            </div>
+                        </div>
+                    </div>
+                @endguest
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                     <a href="{{ route('store') }}" class="rounded-md bg-emerald-900 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">Explore Store</a>
                     <a href="{{ route('ai-tools') }}" class="rounded-md border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-800 transition hover:border-emerald-800 hover:text-emerald-900">View AI Tools</a>

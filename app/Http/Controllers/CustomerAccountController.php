@@ -96,7 +96,7 @@ class CustomerAccountController extends Controller
     public function checkout(Request $request)
     {
         if (! auth()->check()) {
-            return redirect()->route('customer.cart')->with('error', 'Please sign in to place an order.');
+            return redirect()->route('customer.login', ['redirect' => route('customer.cart')]);
         }
 
         $items = $this->cartItemsQuery()->get();
