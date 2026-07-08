@@ -10,23 +10,23 @@
 <body class="bg-stone-50 text-slate-900 antialiased">
     <div class="min-h-screen">
         <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/92 backdrop-blur">
-            <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-                <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    <span class="grid h-10 w-10 place-items-center rounded-md bg-emerald-900 text-sm font-bold text-white">VO</span>
-                    <span>
+            <div class="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center px-4 py-3 sm:px-6 lg:px-8">
+                
+                <a href="{{ route('home') }}" class="flex gap-3 pl-2 flex-shrink-0">
+                    <span class="grid h-10 w-10 rounded-md bg-emerald-900 text-sm font-bold text-white items-center justify-center">VO</span>
+                    <span class="hidden sm:block">
                         <span class="block text-base font-semibold tracking-normal text-slate-950">VerdantOps</span>
                         <span class="block text-xs font-medium text-slate-500">Nursery, care and AI plant support</span>
                     </span>
                 </a>
 
-                <nav class="hidden items-center gap-1 lg:flex">
-                    {{-- Store dropdown --}}
+                <nav class="hidden lg:flex items-center gap-1 justify-center">
                     <div class="relative">
                         <button class="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-emerald-900" id="storeMenuButton">
                             Store
                             <svg class="ml-2 h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div id="storeMenu" class="absolute left-0 mt-2 w-48 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 hidden">
+                        <div id="storeMenu" class="absolute left-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 hidden z-50">
                             <div class="py-1">
                                 @foreach (['Plants','Medicines','Accessories','Flowering Plants','Outdoor Plants','Medicinal Plants','Bonsai'] as $cat)
                                     <a href="{{ route('store') }}?category={{ urlencode($cat) }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{ $cat }}</a>
@@ -34,61 +34,77 @@
                             </div>
                         </div>
                     </div>
-
-                    <a href="{{ route('services') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('services') ? 'bg-emerald-50 text-emerald-950' : '' }}">Services</a>
-                    <a href="{{ route('subscriptions') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('subscriptions') ? 'bg-emerald-50 text-emerald-950' : '' }}">Plans</a>
-                    <a href="{{ route('ai-tools') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('ai-tools') ? 'bg-emerald-50 text-emerald-950' : '' }}">AI Tools</a>
-                    <a href="{{ route('reminders') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('reminders') ? 'bg-emerald-50 text-emerald-950' : '' }}">Reminders</a>
-                    <a href="{{ route('dashboard') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('dashboard') ? 'bg-emerald-50 text-emerald-950' : '' }}">Dashboard</a>
-                    <a href="{{ route('operations') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900 {{ request()->routeIs('operations') ? 'bg-emerald-50 text-emerald-950' : '' }}">Operations</a>
+                    <a href="{{ route('services') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Services</a>
+                    <a href="{{ route('subscriptions') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Plans</a>
+                    <a href="{{ route('ai-tools') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">AI Tools</a>
+                    <a href="{{ route('reminders') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Reminders</a>
+                    <a href="{{ route('dashboard') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Dashboard</a>
+                    <a href="{{ route('operations') }}" class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-900">Operations</a>
                 </nav>
 
-                <a href="{{ route('services') }}" class="hidden rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 sm:inline-flex">
-                    Book Service
-                </a>
+                <div class="flex items-center justify-end gap-4 flex-shrink-0">
+                    <div class="relative">
+                        <button id="userMenuButton" class="flex items-center">
+                            <div class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-900 border border-emerald-200">JD</div>
+                        </button>
+                        <div id="userMenu" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 hidden z-50">
+                            <a href="{{ route('customer.orders') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Orders</a>
+                            <a href="{{ route('customer.cart') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Cart</a>
+                            <a href="{{ route('customer.saved-products') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Saved Products</a>
+                            <a href="{{ route('customer.profile') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
+                        </div>
+                    </div>
+
+                    <button id="mobileMenuButton" class="lg:hidden p-2 text-slate-600 hover:text-emerald-900">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobileMenu" class="hidden lg:hidden border-t border-slate-100 bg-white px-4 py-4 flex flex-col space-y-1 z-50">
+                <a href="{{ route('services') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Services</a>
+                <a href="{{ route('subscriptions') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Plans</a>
+                <a href="{{ route('ai-tools') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">AI Tools</a>
+                <a href="{{ route('reminders') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Reminders</a>
+                <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Dashboard</a>
+                <a href="{{ route('operations') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Operations</a>
+                <a href="{{ route('customer.cart') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Cart</a>
+                <a href="{{ route('customer.orders') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Orders</a>
+                <a href="{{ route('customer.saved-products') }}" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-md">Saved Products</a>
             </div>
         </header>
 
-        <main>
-            @yield('content')
-        </main>
-
-        <footer class="border-t border-slate-200 bg-white">
-            <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
-                <div>
-                    <p class="text-lg font-semibold text-slate-950">VerdantOps</p>
-                    <p class="mt-3 max-w-md text-sm leading-6 text-slate-600">
-                        A Laravel platform foundation for plant commerce, service booking, subscriptions, reminders, AI plant assistance, staff operations, and admin management.
-                    </p>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-slate-950">Commerce</p>
-                    <p class="mt-3 text-sm text-slate-600">Plants, accessories, tools, payments, orders</p>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-slate-950">Care</p>
-                    <p class="mt-3 text-sm text-slate-600">Appointments, maintenance plans, health reports</p>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-slate-950">Intelligence</p>
-                    <p class="mt-3 text-sm text-slate-600">AI assistant, disease detection, AR and reminders</p>
-                </div>
-            </div>
-        </footer>
+        <main>@yield('content')</main>
     </div>
+
     <script>
         (function(){
-            const btn = document.getElementById('storeMenuButton');
-            const menu = document.getElementById('storeMenu');
-            if (btn && menu) {
-                btn.addEventListener('click', function(e){
-                    e.stopPropagation();
-                    menu.classList.toggle('hidden');
+            const menus = [
+                { btn: 'storeMenuButton', menu: 'storeMenu' },
+                { btn: 'userMenuButton', menu: 'userMenu' },
+                { btn: 'mobileMenuButton', menu: 'mobileMenu' }
+            ];
+
+            menus.forEach(item => {
+                const btn = document.getElementById(item.btn);
+                const menu = document.getElementById(item.menu);
+                if (btn && menu) {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Hide other menus when opening a new one
+                        menus.forEach(other => {
+                            if (other.menu !== item.menu) document.getElementById(other.menu).classList.add('hidden');
+                        });
+                        menu.classList.toggle('hidden');
+                    });
+                }
+            });
+
+            document.addEventListener('click', () => {
+                menus.forEach(item => {
+                    document.getElementById(item.menu).classList.add('hidden');
                 });
-                document.addEventListener('click', function(){
-                    if (!menu.classList.contains('hidden')) menu.classList.add('hidden');
-                });
-            }
+            });
         })();
     </script>
 </body>

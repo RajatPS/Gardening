@@ -18,6 +18,19 @@ Route::controller(PlatformController::class)->group(function (): void {
     Route::get('/operations', 'operations')->name('operations');
 });
 
+Route::middleware(['web'])->group(function (): void {
+    Route::get('/customer/cart', [\App\Http\Controllers\CustomerAccountController::class, 'cart'])->name('customer.cart');
+    Route::post('/customer/cart/add', [\App\Http\Controllers\CustomerAccountController::class, 'addToCart'])->name('customer.cart.add');
+    Route::post('/customer/cart/{cartItem}/update', [\App\Http\Controllers\CustomerAccountController::class, 'updateCart'])->name('customer.cart.update');
+    Route::delete('/customer/cart/{cartItem}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeCartItem'])->name('customer.cart.remove');
+    Route::get('/customer/orders', [\App\Http\Controllers\CustomerAccountController::class, 'orders'])->name('customer.orders');
+    Route::post('/customer/checkout', [\App\Http\Controllers\CustomerAccountController::class, 'checkout'])->name('customer.checkout');
+    Route::get('/customer/saved-products', [\App\Http\Controllers\CustomerAccountController::class, 'savedProducts'])->name('customer.saved-products');
+    Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
+    Route::delete('/customer/saved-products/{savedProduct}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeSavedProduct'])->name('customer.saved-products.remove');
+    Route::get('/customer/profile', [\App\Http\Controllers\CustomerAccountController::class, 'profile'])->name('customer.profile');
+});
+
 // Admin Panel Routes
 require base_path('routes/admin.php');
 

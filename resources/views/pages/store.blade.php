@@ -18,9 +18,23 @@
                                 <p class="text-lg font-semibold text-slate-950">{{ $product['price'] }}</p>
                             </div>
                             <p class="mt-3 text-sm text-slate-600">{{ $product['care'] }}</p>
-                            <div class="mt-5 grid grid-cols-2 gap-3">
-                                <button class="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Add to Cart</button>
-                                <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">Ask AI</button>
+                            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                                <form action="{{ route('customer.cart.add') }}" method="POST" class="w-full">
+                                    @csrf
+                                    <input type="hidden" name="product_name" value="{{ $product['name'] }}">
+                                    <input type="hidden" name="product_category" value="{{ $product['category'] }}">
+                                    <input type="hidden" name="price" value="{{ strip_tags($product['price']) }}">
+                                    <input type="hidden" name="image_url" value="{{ $product['image'] }}">
+                                    <button type="submit" class="w-full rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Add to Cart</button>
+                                </form>
+                                <form action="{{ route('customer.saved-products.save') }}" method="POST" class="w-full">
+                                    @csrf
+                                    <input type="hidden" name="product_name" value="{{ $product['name'] }}">
+                                    <input type="hidden" name="product_category" value="{{ $product['category'] }}">
+                                    <input type="hidden" name="price" value="{{ strip_tags($product['price']) }}">
+                                    <input type="hidden" name="image_url" value="{{ $product['image'] }}">
+                                    <button type="submit" class="w-full rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">Save</button>
+                                </form>
                             </div>
                         </div>
                     </article>
