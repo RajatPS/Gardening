@@ -1,0 +1,9 @@
+node_modules
+vendor
+public/build
+storage/logs
+.git
+.gitignore
+.env
+.env.*
+*.log
