@@ -24,13 +24,32 @@ class SubscriptionPaymentController extends Controller
 
         $planName = ucfirst($validated['plan']);
         $planData = $this->planDetails($planName);
+        $currentSubscription = Subscription::active()->where('user_id', auth()->id())->latest('end_date')->first();
+
+        if ($currentSubscription && $currentSubscription->plan_name === $planName) {
+            return redirect()->route('subscriptions')->with('error', 'You already have the selected plan active.');
+        }
+
+        if ($currentSubscription) {
+            $currentPrice = $currentSubscription->amount;
+            if ($planData['amount'] <= $currentPrice) {
+                return redirect()->route('subscriptions')->with('error', 'Downgrades and same-plan purchases are not allowed while your current plan is active.');
+            }
+
+            $upgradeAmount = $planData['amount'] - $currentPrice;
+        } else {
+            $upgradeAmount = $planData['amount'];
+        }
 
         return view('pages.subscriptions-payment', [
             'plan' => $planName,
-            'amount' => $planData['amount'],
+            'amount' => $upgradeAmount,
             'currency' => config('app.currency', env('APP_CURRENCY', 'INR')),
             'paymentGateway' => $this->paymentGatewayEnabled() ? 'razorpay' : 'mock',
             'paymentMethod' => null,
+            'currentPlanPrice' => $currentSubscription?->amount,
+            'currentPlanName' => $currentSubscription?->plan_name,
+            'currentPlanAmountFormatted' => $currentSubscription ? '₹' . number_format($currentSubscription->amount, 0) : null,
         ]);
     }
 
@@ -49,37 +68,52 @@ class SubscriptionPaymentController extends Controller
         $planData = $this->planDetails($planName);
         $currency = config('app.currency', env('APP_CURRENCY', 'INR'));
         $paymentMethod = $validated['payment_method'];
+        $currentSubscription = Subscription::active()->where('user_id', auth()->id())->latest('end_date')->first();
 
-        $order = null;
+        if ($currentSubscription && $currentSubscription->plan_name === $planName) {
+            return redirect()->route('subscriptions')->with('error', 'You already have the selected plan active.');
+        }
+
+        if ($currentSubscription && $planData['amount'] <= $currentSubscription->amount) {
+            return redirect()->route('subscriptions')->with('error', 'Downgrades and same-plan purchases are not allowed while your current plan is active.');
+        }
+
+        $amountToPay = $currentSubscription ? $planData['amount'] - $currentSubscription->amount : $planData['amount'];
+
         if ($this->paymentGatewayEnabled()) {
-            $order = $this->createRazorpayOrder($planData['amount'], $currency, $planName, $paymentMethod);
+            $order = $this->createRazorpayOrder($amountToPay, $currency, $planName, $paymentMethod);
 
             if ($order['success']) {
                 $subscription = $this->createSubscriptionRecord($planName, $planData['amount'], 'pending', $paymentMethod, [
                     'gateway' => 'razorpay',
                     'order_id' => $order['data']['id'],
+                    'upgrade_from' => $currentSubscription?->plan_name,
                 ]);
 
-                $transaction = $this->createTransactionRecord($subscription, $order['data']['id'], $planData['amount'], $paymentMethod, 'pending', [
+                $transaction = $this->createTransactionRecord($subscription, $order['data']['id'], $amountToPay, $paymentMethod, 'pending', [
                     'gateway' => 'razorpay',
                     'order_id' => $order['data']['id'],
+                    'upgrade_from' => $currentSubscription?->plan_name,
                 ], null);
 
                 return view('pages.subscriptions-payment', [
                     'plan' => $planName,
-                    'amount' => $planData['amount'],
+                    'amount' => $amountToPay,
                     'currency' => $currency,
                     'paymentGateway' => 'razorpay',
                     'paymentMethod' => $paymentMethod,
                     'order' => $order['data'],
                     'transactionId' => $transaction->id,
+                    'currentPlanName' => $currentSubscription?->plan_name,
+                    'currentPlanPrice' => $currentSubscription?->amount,
                 ]);
             }
         }
 
-        return $this->completeSubscription($planName, $planData['amount'], $paymentMethod, 'completed', [
+        return $this->completeSubscription($planName, $planData['amount'], 'cash', 'completed', [
             'gateway' => 'mock',
             'message' => 'Payment completed using the local fallback flow.',
+            'upgrade_from' => $currentSubscription?->plan_name,
         ]);
     }
 

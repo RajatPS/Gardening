@@ -19,6 +19,34 @@
                 </div>
             @endif
 
+            @if (! empty($currentSubscription))
+                <section class="mt-10 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-emerald-900">Current Subscription</h2>
+                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-lg bg-white p-4 shadow-sm">
+                            <p class="text-sm text-slate-500">Plan</p>
+                            <p class="mt-1 text-xl font-semibold text-slate-950">{{ $currentSubscription['plan_name'] }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white p-4 shadow-sm">
+                            <p class="text-sm text-slate-500">Price</p>
+                            <p class="mt-1 text-xl font-semibold text-slate-950">{{ $currentSubscription['price'] }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white p-4 shadow-sm">
+                            <p class="text-sm text-slate-500">Start Date</p>
+                            <p class="mt-1 text-xl font-semibold text-slate-950">{{ $currentSubscription['start_date'] }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white p-4 shadow-sm">
+                            <p class="text-sm text-slate-500">Expiry Date</p>
+                            <p class="mt-1 text-xl font-semibold text-slate-950">{{ $currentSubscription['end_date'] }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white p-4 shadow-sm sm:col-span-2">
+                            <p class="text-sm text-slate-500">Status</p>
+                            <p class="mt-1 text-xl font-semibold text-slate-950">{{ $currentSubscription['status'] }}</p>
+                        </div>
+                    </div>
+                </section>
+            @endif
+
             <div class="mt-10 grid gap-6 lg:grid-cols-3">
                 @foreach ($plans as $plan)
                     <article class="rounded-lg border {{ $plan['name'] === 'Standard' ? 'border-emerald-800 bg-emerald-950 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-950 shadow-sm' }} p-6">

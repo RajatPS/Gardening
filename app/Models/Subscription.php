@@ -28,6 +28,11 @@ class Subscription extends Model
         ];
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')->where('end_date', '>=', now());
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

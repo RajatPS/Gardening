@@ -32,7 +32,34 @@ class PlatformController extends Controller
 
     public function subscriptions(): View
     {
-        return view('pages.subscriptions', $this->sharedData());
+        $plans = collect($this->sharedData()['plans']);
+        $currentSubscription = null;
+        $availablePlans = $plans;
+
+        if (auth()->check()) {
+            $active = \App\Models\Subscription::active()->where('user_id', auth()->id())->latest('end_date')->first();
+            if ($active) {
+                $currentSubscription = [
+                    'plan_name' => $active->plan_name,
+                    'price' => '₹' . number_format($active->amount, 0),
+                    'start_date' => $active->start_date?->format('d M Y'),
+                    'end_date' => $active->end_date?->format('d M Y'),
+                    'status' => $active->status === 'active' ? 'Active' : 'Expired',
+                    'amount_value' => $active->amount,
+                ];
+
+                $availablePlans = $plans->filter(function ($plan) use ($currentSubscription) {
+                    $currentValue = (int) preg_replace('/[^0-9]/', '', $currentSubscription['price']);
+                    $planValue = (int) preg_replace('/[^0-9]/', '', $plan['price']);
+                    return $planValue > $currentValue;
+                })->values();
+            }
+        }
+
+        return view('pages.subscriptions', array_merge($this->sharedData(), [
+            'currentSubscription' => $currentSubscription,
+            'plans' => $availablePlans,
+        ]));
     }
 
     public function aiTools(): View
