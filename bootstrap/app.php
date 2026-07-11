@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'staff' => \App\Http\Middleware\StaffMiddleware::class,
+            'customer.auth' => \App\Http\Middleware\RequireCustomerAuth::class,
             'dynamic-root-url' => \App\Http\Middleware\SetDynamicRootUrl::class,
         ]);
 
