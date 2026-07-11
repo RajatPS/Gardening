@@ -97,8 +97,20 @@
                                 return;
                             }
 
-                                    if(!res.ok){
-                                results.innerHTML = `<pre class="text-sm text-red-600">${escapeHtml(json.error || json.details || 'AI error')}</pre>`;
+                            if(!res.ok){
+                                if (json?.requires_login) {
+                                    results.innerHTML = `
+                                        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                                            <p class="font-semibold">${escapeHtml(json.message || 'Please log in or sign up to continue using AI.')}</p>
+                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                <a href="/customer/login" class="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Login</a>
+                                                <a href="/customer/register" class="rounded-md border border-emerald-900 px-4 py-2 text-sm font-semibold text-emerald-900">Create account</a>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else {
+                                    results.innerHTML = `<pre class="text-sm text-red-600">${escapeHtml(json.error || json.details || 'AI error')}</pre>`;
+                                }
                                 return;
                             }
 

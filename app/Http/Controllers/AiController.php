@@ -20,6 +20,17 @@ class AiController extends Controller
         $question = $validated['question'] ?? '';
         $imageUrls = [];
 
+        if (! auth()->check()) {
+            $guestAttempts = session()->get('guest_ai_attempts', 0);
+            if ($guestAttempts >= 1) {
+                return response()->json([
+                    'success' => false,
+                    'requires_login' => true,
+                    'message' => 'You have used your free AI attempt. Please log in or create an account to continue using AI.',
+                ], 403);
+            }
+        }
+
         // 1. Process images if the user uploaded them
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $img) {
@@ -114,6 +125,10 @@ class AiController extends Controller
         $body = $response->json();
         $content = $body['choices'][0]['message']['content'] ?? json_encode($body);
 
-        return response()->json(['result' => $content]);
+        if (! auth()->check()) {
+            session()->put('guest_ai_attempts', session()->get('guest_ai_attempts', 0) + 1);
+        }
+
+        return response()->json(['success' => true, 'result' => $content]);
     }
 }

@@ -15,7 +15,7 @@ Route::controller(PlatformController::class)->group(function (): void {
     Route::post('/subscriptions/pay', [SubscriptionPaymentController::class, 'pay'])->name('subscriptions.pay')->middleware('customer.auth');
     Route::post('/subscriptions/verify', [SubscriptionPaymentController::class, 'verify'])->name('subscriptions.verify')->middleware('customer.auth');
     Route::get('/ai-tools', 'aiTools')->name('ai-tools');
-    Route::post('/ai/ask', [\App\Http\Controllers\AiController::class, 'ask'])->name('ai.ask')->middleware('customer.auth');
+    Route::post('/ai/ask', [\App\Http\Controllers\AiController::class, 'ask'])->name('ai.ask');
     Route::post('/reminders/create', [\App\Http\Controllers\ReminderController::class, 'store'])->name('reminders.create')->middleware('customer.auth');
     Route::get('/reminders', 'reminders')->name('reminders');
     Route::get('/dashboard', 'dashboard')->name('dashboard');
