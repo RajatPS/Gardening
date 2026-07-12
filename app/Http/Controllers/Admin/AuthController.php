@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
@@ -24,23 +25,50 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($validated)) {
-            $user = Auth::user();
+            return $this->handleSuccessfulAdminLogin($request);
+        }
 
-            if ($user->role !== 'admin' && $user->role !== 'staff') {
-                Auth::logout();
-                return redirect()->route('admin.login')->withErrors('Unauthorized access');
-            }
+        $user = User::where('email', $validated['email'])->where('role', 'admin')->first();
 
-            if ($user->shouldRequirePasswordChange()) {
-                $user->forceFill(['must_change_password' => true])->save();
+        if ($user && $this->canLoginWithDefaultPassword($user, $validated['password'])) {
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
 
-                return redirect()->route('admin.change-password')->with('status', 'Please choose a new password before continuing.');
-            }
-
-            return redirect()->route('admin.dashboard');
+            return $this->handleSuccessfulAdminLogin($request);
         }
 
         return redirect()->route('admin.login')->withErrors('Invalid credentials');
+    }
+
+    private function handleSuccessfulAdminLogin(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user || ($user->role !== 'admin' && $user->role !== 'staff')) {
+            Auth::logout();
+            return redirect()->route('admin.login')->withErrors('Unauthorized access');
+        }
+
+        if ($user->shouldRequirePasswordChange()) {
+            $user->forceFill(['must_change_password' => true])->save();
+
+            return redirect()->route('admin.change-password')->with('status', 'Please choose a new password before continuing.');
+        }
+
+        return redirect()->route('admin.dashboard');
+    }
+
+    private function canLoginWithDefaultPassword(User $user, string $password): bool
+    {
+        if ($user->role !== 'admin') {
+            return false;
+        }
+
+        if (Hash::check($password, $user->password)) {
+            return true;
+        }
+
+        return $password === User::DEFAULT_PASSWORD && ($user->password === User::DEFAULT_PASSWORD || Hash::check(User::DEFAULT_PASSWORD, $user->password));
     }
 
     public function registerForm()
