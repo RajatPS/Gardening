@@ -64,6 +64,9 @@
                         <a href="{{ route('customer.register') }}?redirect={{ urlencode($redirect) }}" class="font-medium text-emerald-800">Create account</a>
                     </div>
                     <button type="submit" class="w-full rounded-xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">Log in</button>
+                    <div class="text-center text-sm">
+                        <a href="{{ route('customer.forgot-password') }}" class="font-medium text-emerald-800">Forgot password?</a>
+                    </div>
                 </form>
             </div>
         </div>

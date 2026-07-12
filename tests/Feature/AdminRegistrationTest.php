@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminRegistrationTest extends TestCase
@@ -30,5 +32,26 @@ class AdminRegistrationTest extends TestCase
 
         $user = User::where('email', 'admin@example.com')->first();
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_admin_login_with_default_password_redirects_to_change_password_page(): void
+    {
+        $user = User::create([
+            'name' => 'Default Admin',
+            'email' => 'default-admin@example.com',
+            'password' => Hash::make('11223344'),
+            'role' => 'admin',
+            'status' => 'active',
+            'user_type' => 'admin',
+            'must_change_password' => true,
+        ]);
+
+        $response = $this->post(route('admin.login.post'), [
+            'email' => $user->email,
+            'password' => '11223344',
+        ]);
+
+        $response->assertRedirect(route('admin.change-password'));
+        $this->assertTrue(Auth::user()->must_change_password);
     }
 }

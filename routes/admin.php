@@ -24,11 +24,15 @@ Route::prefix('admin')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('admin.login.post');
     Route::get('forgot-password', [AuthController::class, 'forgotPasswordForm'])->name('admin.forgot-password');
     Route::post('forgot-password', [AuthController::class, 'sendResetLink'])->name('admin.forgot-password.post');
+    Route::get('reset-password/{token}', [AuthController::class, 'resetPasswordForm'])->name('admin.reset-password');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('admin.reset-password.post');
 
     // Protected Admin Routes
     Route::middleware(['auth', 'admin'])->group(function () {
         // Dashboard
         Route::get('dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+        Route::get('change-password', [AuthController::class, 'changePasswordForm'])->name('admin.change-password');
+        Route::post('change-password', [AuthController::class, 'changePassword'])->name('admin.change-password.post');
         Route::post('logout', [AuthController::class, 'logout'])->name('admin.logout');
 
         // User Management

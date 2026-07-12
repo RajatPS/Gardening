@@ -87,6 +87,9 @@
     <div class="text-center mt-4">
         <a href="{{ route('staff.register') }}" class="link-text">Create a staff account</a>
     </div>
+    <div class="text-center mt-2">
+        <a href="{{ route('staff.forgot-password') }}" class="link-text">Forgot password?</a>
+    </div>
 </div>
 </body>
 </html>

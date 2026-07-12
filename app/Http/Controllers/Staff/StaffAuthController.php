@@ -7,8 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password;
 
 class StaffAuthController extends Controller
 {
@@ -30,6 +31,12 @@ class StaffAuthController extends Controller
             if ($user->role !== 'staff') {
                 Auth::logout();
                 return redirect()->route('staff.login')->withErrors('Only staff accounts can access this panel');
+            }
+
+            if ($user->shouldRequirePasswordChange()) {
+                $user->forceFill(['must_change_password' => true])->save();
+
+                return redirect()->route('staff.change-password')->with('status', 'Please choose a new password before continuing.');
             }
 
             return redirect()->route('staff.dashboard');
@@ -126,6 +133,7 @@ class StaffAuthController extends Controller
             'role' => 'staff',
             'status' => 'active',
             'user_type' => 'staff',
+            'must_change_password' => false,
         ]);
 
         Auth::login($user);
@@ -173,6 +181,125 @@ class StaffAuthController extends Controller
         }
 
         return '+' . $rawPhone;
+    }
+
+    public function forgotPasswordForm()
+    {
+        return view('staff.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        if ($request->filled('otp') && $request->filled('password')) {
+            return $this->completePasswordReset($request);
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'country_code' => ['nullable', 'string', 'max:6'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user) {
+            return back()->withErrors(['email' => 'No account was found for that email address.']);
+        }
+
+        $phone = $validated['phone'] ?: $user->phone;
+
+        if (empty($phone)) {
+            return back()->withErrors(['phone' => 'Please provide a phone number so we can send the verification code.']);
+        }
+
+        $normalizedPhone = $this->normalizePhoneNumber($phone, $validated['country_code'] ?? null);
+        $user->forceFill(['phone' => $normalizedPhone])->save();
+
+        $otp = random_int(100000, 999999);
+        Cache::put('password_reset_otp_' . $normalizedPhone, $otp, now()->addMinutes(10));
+        Cache::put('password_reset_user_' . $normalizedPhone, $user->id, now()->addMinutes(10));
+
+        $this->sendTwilioOtp($normalizedPhone, $otp);
+
+        session()->put('password_reset_pending', ['email' => $user->email, 'phone' => $normalizedPhone]);
+
+        return back()->with('status', 'A verification code has been sent to your phone number.');
+    }
+
+    public function changePasswordForm()
+    {
+        return view('staff.change-password');
+    }
+
+    public function changePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = Auth::user();
+
+        if (! $user) {
+            return redirect()->route('staff.login');
+        }
+
+        $user->forceFill([
+            'password' => $validated['password'],
+            'must_change_password' => false,
+        ])->save();
+
+        return redirect()->route('staff.dashboard')->with('status', 'Password updated successfully.');
+    }
+
+    public function resetPasswordForm()
+    {
+        if (! session('password_reset_pending')) {
+            return redirect()->route('staff.forgot-password');
+        }
+
+        return view('staff.reset-password', [
+            'email' => session('password_reset_pending.email'),
+            'phone' => session('password_reset_pending.phone'),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        return $this->completePasswordReset($request);
+    }
+
+    private function completePasswordReset(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'otp' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $pending = session('password_reset_pending');
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user || ! $pending || ($pending['email'] ?? null) !== $validated['email']) {
+            return back()->withErrors(['email' => 'The reset session is invalid. Please request a new code.']);
+        }
+
+        $phone = $pending['phone'] ?? $user->phone;
+        $storedOtp = Cache::get('password_reset_otp_' . $phone);
+
+        if ((string) $storedOtp !== (string) $validated['otp']) {
+            return back()->withErrors(['otp' => 'Invalid or expired verification code.']);
+        }
+
+        $user->forceFill([
+            'password' => $validated['password'],
+            'must_change_password' => false,
+        ])->save();
+
+        Cache::forget('password_reset_otp_' . $phone);
+        Cache::forget('password_reset_user_' . $phone);
+        session()->forget('password_reset_pending');
+
+        return redirect()->route('staff.login')->with('status', 'Password reset successfully. Please sign in with your new password.');
     }
 
     public function logout()

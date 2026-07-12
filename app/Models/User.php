@@ -4,14 +4,19 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, CanResetPassword;
+
+    public const DEFAULT_PASSWORD = '11223344';
 
     /**
      * The attributes that are mass assignable.
@@ -29,6 +34,7 @@ class User extends Authenticatable
         'user_type',
         'profile_image',
         'city',
+        'must_change_password',
     ];
 
     /**
@@ -51,6 +57,12 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
+    }
+
+    public function shouldRequirePasswordChange(): bool
+    {
+        return $this->must_change_password || Hash::check(self::DEFAULT_PASSWORD, $this->password);
     }
 }

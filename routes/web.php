@@ -30,6 +30,10 @@ Route::get('/customer/login', [\App\Http\Controllers\CustomerAuthController::cla
 Route::post('/customer/login', [\App\Http\Controllers\CustomerAuthController::class, 'login'])->name('customer.login.post');
 Route::get('/customer/register', [\App\Http\Controllers\CustomerAuthController::class, 'registerForm'])->name('customer.register');
 Route::post('/customer/register', [\App\Http\Controllers\CustomerAuthController::class, 'register'])->name('customer.register.post');
+Route::get('/customer/forgot-password', [\App\Http\Controllers\CustomerAuthController::class, 'forgotPasswordForm'])->name('customer.forgot-password');
+Route::post('/customer/forgot-password', [\App\Http\Controllers\CustomerAuthController::class, 'sendResetLink'])->name('customer.forgot-password.post');
+Route::get('/customer/reset-password/{token}', [\App\Http\Controllers\CustomerAuthController::class, 'resetPasswordForm'])->name('customer.reset-password');
+Route::post('/customer/reset-password', [\App\Http\Controllers\CustomerAuthController::class, 'resetPassword'])->name('customer.reset-password.post');
 
 Route::middleware('customer.auth')->group(function (): void {
     Route::get('/customer/cart', [\App\Http\Controllers\CustomerAccountController::class, 'cart'])->name('customer.cart');
@@ -42,6 +46,8 @@ Route::middleware('customer.auth')->group(function (): void {
     Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
     Route::delete('/customer/saved-products/{savedProduct}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeSavedProduct'])->name('customer.saved-products.remove');
     Route::get('/customer/profile', [\App\Http\Controllers\CustomerAccountController::class, 'profile'])->name('customer.profile');
+    Route::get('/customer/change-password', [\App\Http\Controllers\CustomerAuthController::class, 'changePasswordForm'])->name('customer.change-password');
+    Route::post('/customer/change-password', [\App\Http\Controllers\CustomerAuthController::class, 'changePassword'])->name('customer.change-password.post');
 });
 
 Route::post('/ai/disease/report', [\App\Http\Controllers\AiController::class, 'storeDiseaseReport'])->name('ai.disease.report');
