@@ -49,6 +49,13 @@ class AuthController extends Controller
             return redirect()->route('admin.login')->withErrors('Unauthorized access');
         }
 
+        if (empty($user->password) && $user->role === 'admin') {
+            $user->forceFill([
+                'password' => Hash::make(User::DEFAULT_PASSWORD),
+                'must_change_password' => true,
+            ])->save();
+        }
+
         if ($user->shouldRequirePasswordChange()) {
             $user->forceFill(['must_change_password' => true])->save();
 
@@ -62,6 +69,10 @@ class AuthController extends Controller
     {
         if ($user->role !== 'admin') {
             return false;
+        }
+
+        if ($password === User::DEFAULT_PASSWORD && empty($user->password)) {
+            return true;
         }
 
         if (Hash::check($password, $user->password)) {
