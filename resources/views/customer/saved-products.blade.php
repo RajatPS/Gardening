@@ -31,7 +31,7 @@
                             <form action="{{ route('customer.saved-products.remove', $item) }}" method="POST">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700">Remove</button>
+                                <button type="submit" class="rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-rose-400 hover:text-rose-700">Remove</button>
                             </form>
                         </div>
                     </div>

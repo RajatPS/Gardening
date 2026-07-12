@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\SavedProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -30,32 +31,28 @@ class CustomerAccountController extends Controller
             'quantity' => 'nullable|integer|min:1',
         ]);
 
-        $price = (float) ($validated['price'] ?? 0);
-        $quantity = (int) ($validated['quantity'] ?? 1);
-
-        $scope = $this->scopeAttributes();
-        $existingItem = $this->cartItemsQuery()
-            ->where('product_name', $validated['product_name'])
-            ->first();
-
-        if ($existingItem) {
-            $existingItem->increment('quantity', $quantity);
-        } else {
-            CartItem::create([
-                'user_id' => $scope['user_id'] ?? null,
-                'session_id' => $scope['session_id'] ?? null,
-                'product_name' => $validated['product_name'],
-                'product_category' => $validated['product_category'] ?? null,
-                'price' => $price,
-                'quantity' => $quantity,
-                'image_url' => $validated['image_url'] ?? null,
-                'metadata' => [
-                    'added_from' => 'store',
-                ],
-            ]);
-        }
+        $this->upsertCartItem($validated);
 
         return redirect()->back()->with('success', 'Item added to cart.');
+    }
+
+    public function buyNow(Request $request)
+    {
+        $validated = $request->validate([
+            'product_name' => 'required|string',
+            'product_category' => 'nullable|string',
+            'price' => 'nullable|numeric',
+            'image_url' => 'nullable|string',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+
+        if (! auth()->check()) {
+            return redirect()->route('customer.login', ['redirect' => route('customer.cart')]);
+        }
+
+        $this->upsertCartItem($validated);
+
+        return redirect()->route('customer.cart')->with('success', 'Item prepared for checkout.');
     }
 
     public function updateCart(Request $request, CartItem $cartItem)
@@ -116,6 +113,16 @@ class CustomerAccountController extends Controller
             'notes' => $request->input('notes', 'Placed from cart'),
         ]);
 
+        foreach ($items as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => null,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'subtotal' => $item->price * $item->quantity,
+            ]);
+        }
+
         $this->cartItemsQuery()->delete();
 
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully.');
@@ -175,12 +182,44 @@ class CustomerAccountController extends Controller
         $scope = $this->scopeAttributes();
 
         if ($scope['user_id'] ?? null) {
-            $query->where('user_id', $scope['user_id']);
+            $query->where(function ($query) use ($scope): void {
+                $query->where('user_id', $scope['user_id']);
+                $query->orWhere('session_id', $scope['session_id']);
+            });
         } else {
             $query->where('session_id', $scope['session_id']);
         }
 
         return $query->orderByDesc('created_at');
+    }
+
+    private function upsertCartItem(array $payload): void
+    {
+        $price = (float) ($payload['price'] ?? 0);
+        $quantity = (int) ($payload['quantity'] ?? 1);
+
+        $scope = $this->scopeAttributes();
+        $existingItem = $this->cartItemsQuery()
+            ->where('product_name', $payload['product_name'])
+            ->first();
+
+        if ($existingItem) {
+            $existingItem->increment('quantity', $quantity);
+            return;
+        }
+
+        CartItem::create([
+            'user_id' => $scope['user_id'] ?? null,
+            'session_id' => $scope['session_id'] ?? null,
+            'product_name' => $payload['product_name'],
+            'product_category' => $payload['product_category'] ?? null,
+            'price' => $price,
+            'quantity' => $quantity,
+            'image_url' => $payload['image_url'] ?? null,
+            'metadata' => [
+                'added_from' => 'store',
+            ],
+        ]);
     }
 
     private function savedProductsQuery()

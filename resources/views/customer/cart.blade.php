@@ -42,12 +42,12 @@
                                     @csrf
                                     <label class="text-sm text-slate-600" for="quantity-{{ $item->id }}">Qty</label>
                                     <input id="quantity-{{ $item->id }}" name="quantity" type="number" min="1" value="{{ $item->quantity }}" class="w-16 rounded border border-slate-300 px-2 py-1 text-sm">
-                                    <button type="submit" class="rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700">Update</button>
+                                    <button type="submit" class="rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700">Update</button>
                                 </form>
                                 <form action="{{ route('customer.cart.remove', $item) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="rounded border border-rose-300 px-3 py-1 text-sm font-medium text-rose-700">Remove</button>
+                                    <button type="submit" class="rounded border border-rose-300 px-3 py-1 text-sm font-medium text-rose-700 transition hover:bg-rose-50">Remove</button>
                                 </form>
                             </div>
                             <div class="text-sm font-semibold text-slate-950">₹{{ number_format($item->price * $item->quantity, 2) }}</div>
@@ -73,7 +73,7 @@
                     </div>
                     <form action="{{ route('customer.checkout') }}" method="POST" class="mt-6">
                         @csrf
-                        <button type="submit" class="w-full rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Checkout</button>
+                        <button type="submit" class="w-full rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-950">Checkout</button>
                     </form>
                 </div>
             </div>

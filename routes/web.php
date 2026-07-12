@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::controller(PlatformController::class)->group(function (): void {
     Route::get('/', 'home')->name('home');
     Route::get('/store', 'store')->name('store');
+    Route::get('/products/{slug}', 'productDetails')->name('product.details');
     Route::get('/services', 'services')->name('services');
     Route::post('/services/book', 'bookService')->name('services.book')->middleware('customer.auth');
     Route::post('/garden-setup', [\App\Http\Controllers\GardenSetupController::class, 'store'])->name('garden.setup')->middleware('customer.auth');
@@ -35,15 +36,17 @@ Route::post('/customer/forgot-password', [\App\Http\Controllers\CustomerAuthCont
 Route::get('/customer/reset-password/{token}', [\App\Http\Controllers\CustomerAuthController::class, 'resetPasswordForm'])->name('customer.reset-password');
 Route::post('/customer/reset-password', [\App\Http\Controllers\CustomerAuthController::class, 'resetPassword'])->name('customer.reset-password.post');
 
+Route::post('/customer/cart/add', [\App\Http\Controllers\CustomerAccountController::class, 'addToCart'])->name('customer.cart.add');
+Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
+
 Route::middleware('customer.auth')->group(function (): void {
     Route::get('/customer/cart', [\App\Http\Controllers\CustomerAccountController::class, 'cart'])->name('customer.cart');
-    Route::post('/customer/cart/add', [\App\Http\Controllers\CustomerAccountController::class, 'addToCart'])->name('customer.cart.add');
     Route::post('/customer/cart/{cartItem}/update', [\App\Http\Controllers\CustomerAccountController::class, 'updateCart'])->name('customer.cart.update');
     Route::delete('/customer/cart/{cartItem}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeCartItem'])->name('customer.cart.remove');
     Route::get('/customer/orders', [\App\Http\Controllers\CustomerAccountController::class, 'orders'])->name('customer.orders');
     Route::post('/customer/checkout', [\App\Http\Controllers\CustomerAccountController::class, 'checkout'])->name('customer.checkout');
+    Route::post('/customer/buy-now', [\App\Http\Controllers\CustomerAccountController::class, 'buyNow'])->name('customer.buy-now');
     Route::get('/customer/saved-products', [\App\Http\Controllers\CustomerAccountController::class, 'savedProducts'])->name('customer.saved-products');
-    Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
     Route::delete('/customer/saved-products/{savedProduct}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeSavedProduct'])->name('customer.saved-products.remove');
     Route::get('/customer/profile', [\App\Http\Controllers\CustomerAccountController::class, 'profile'])->name('customer.profile');
     Route::get('/customer/change-password', [\App\Http\Controllers\CustomerAuthController::class, 'changePasswordForm'])->name('customer.change-password');

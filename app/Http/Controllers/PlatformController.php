@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AppointmentLocalityService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 
 class PlatformController extends Controller
 {
@@ -23,6 +24,31 @@ class PlatformController extends Controller
         }
 
         return view('pages.store', $data);
+    }
+
+    public function productDetails(string $slug): View
+    {
+        $data = $this->sharedData();
+        $product = collect($data['products'])->first(function (array $item) use ($slug): bool {
+            return ($item['slug'] ?? Str::slug($item['name'])) === $slug;
+        });
+
+        abort_if($product === null, 404);
+
+        return view('pages.product-details', array_merge($data, [
+            'product' => array_merge($product, [
+                'description' => $product['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.',
+                'details' => $product['details'] ?? [
+                    'Easy care and beginner-friendly guidance',
+                    'High-quality and nursery-ready materials',
+                    'Flexible delivery and support options',
+                ],
+                'gallery' => $product['gallery'] ?? [
+                    $product['image'],
+                    $product['image'],
+                ],
+            ]),
+        ]));
     }
 
     public function services(): View
@@ -158,27 +184,48 @@ class PlatformController extends Controller
             'products' => [
                 [
                     'name' => 'Areca Palm',
+                    'slug' => 'areca-palm',
                     'category' => 'Air purifying indoor plant',
                     'price' => '₹799',
                     'price_value' => 799,
                     'care' => 'Bright indirect light',
                     'image' => 'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
+                    'description' => 'Air-purifying foliage with lush arching fronds that brighten a living room or office.',
+                    'details' => ['Low maintenance indoors', 'Great for beginner plant parents', 'Comes with plant care guide'],
+                    'gallery' => [
+                        'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
+                        'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80',
+                    ],
                 ],
                 [
                     'name' => 'Ceramic Self-Watering Pot',
+                    'slug' => 'ceramic-self-watering-pot',
                     'category' => 'Decorative pot',
                     'price' => '₹1,199',
                     'price_value' => 1199,
                     'care' => 'Matte stone finish',
                     'image' => 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80',
+                    'description' => 'A sculptural ceramic planter that keeps moisture balanced for busy plant owners.',
+                    'details' => ['Self-watering reservoir', 'Stone-like matte glaze', 'Ideal for desks and shelves'],
+                    'gallery' => [
+                        'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80',
+                        'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=900&q=80',
+                    ],
                 ],
                 [
                     'name' => 'Organic Growth Kit',
+                    'slug' => 'organic-growth-kit',
                     'category' => 'Fertilizer and soil care',
                     'price' => '₹649',
                     'price_value' => 649,
                     'care' => 'Monthly plant nutrition',
                     'image' => 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=900&q=80',
+                    'description' => 'A complete starter kit for healthy growth, feeding, and seasonal care routines.',
+                    'details' => ['Organic ingredients', 'Easy monthly application', 'Perfect for new planters'],
+                    'gallery' => [
+                        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=900&q=80',
+                        'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80',
+                    ],
                 ],
             ],
             'services' => [
