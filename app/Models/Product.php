@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -11,6 +12,7 @@ class Product extends Model
         'type',
         'category',
         'sku',
+        'quantity',
         'price',
         'stock',
         'specifications',
@@ -26,6 +28,33 @@ class Product extends Model
             'care_profile' => 'array',
             'is_pet_safe' => 'boolean',
             'is_active' => 'boolean',
+            'quantity' => 'integer',
+            'price' => 'integer',
+            'stock' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $product): void {
+            if (empty($product->sku)) {
+                $product->sku = self::generateUniqueSku($product->name ?? 'product');
+            }
+        });
+    }
+
+    public static function generateUniqueSku(?string $name = 'product'): string
+    {
+        $prefix = strtoupper(Str::slug(substr($name ?? 'product', 0, 3)) ?: 'PRD');
+        $date = now()->format('dmy');
+        $random = random_int(1000, 9999);
+        $sku = $prefix . '-' . $random . '-' . $date;
+
+        while (self::where('sku', $sku)->exists()) {
+            $random = random_int(1000, 9999);
+            $sku = $prefix . '-' . $random . '-' . $date;
+        }
+
+        return $sku;
     }
 }

@@ -61,9 +61,9 @@
             <li class="nav-item dropdown ms-3">
                 <a class="nav-link d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                     <div class="user-avatar me-2">
-                        <img src="https://ui-avatars.com/api/?name={{ auth()->user()->name }}" alt="User" class="rounded-circle">
+                        <img src="https://ui-avatars.com/api/?name={{ $currentUser?->name ?? 'Admin' }}" alt="User" class="rounded-circle">
                     </div>
-                    <span class="d-none d-md-inline-block">{{ auth()->user()->name }}</span>
+                    <span class="d-none d-md-inline-block">{{ $currentUser?->name ?? 'Admin' }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <li><a class="dropdown-item" href="{{ route('admin.settings.profile') }}"><i class="fas fa-user-circle me-2"></i>Profile</a></li>

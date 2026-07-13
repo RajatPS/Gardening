@@ -10,6 +10,10 @@
     @stack('styles')
 </head>
 <body>
+    @php
+        $errors = $errors ?? new Illuminate\Support\ViewErrorBag();
+        $currentUser = auth()->user();
+    @endphp
     <div class="wrapper">
         <!-- Sidebar Navigation -->
         @include('admin.layouts.sidebar')
