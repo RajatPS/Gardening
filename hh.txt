@@ -1,0 +1,25 @@
+<!-- in  this project the user side is completed so nowthis is the design flow of admin side.
+
+admin side will have admin dashboard where the sales and revenue and al other business related details in the homepage.
+
+homepage will have a sidebar  that will allow smooth navigation between the different pages.
+
+next i need all list  of user page with  managing user options like deactivate,activate user ,delete user , ediit user detail button with a edit user detail page . 
+
+next i want  a manage products option  in sidbar and a page for it to add multiple images of the product and all product details that will be added by a staff member while uploading a product. also i want a button and a page to edit products after the product is uploaded.
+
+next i want a manage orders page where staff members can manage any orders and update tehir status or even delete the products.
+
+i need search bar in all of the pages to easily find any product user or staff.
+
+i need straff login page and signup page at a different url.
+
+i nned a page accessible from sidebar that keeps all the transaction records here keep only filter methods so that we can filter any users payment recipt or other details.
+
+if anyrhing more is needed add them also and make all those ideas in .md file or" projectplan" format so that i can built the project again with just md file.
+
+also do all the backend works also all buttons should work perfectly and navigation should work correctly.
+
+and keep the colour combination same as the user side. you can read the user side colours and use those colour combinations
+
+so make this admin side .md file in a fully professional way. or you can combine both to make a single file -->
