@@ -71,7 +71,16 @@ class CustomerAuthController extends Controller
                 'role' => 'customer',
                 'status' => 'active',
                 'user_type' => 'customer',
+                'must_change_password' => false,
             ]);
+        } else {
+            $user->forceFill([
+                'name' => $googleUser->getName() ?? $user->name ?? 'Google User',
+                'email' => $email,
+                'status' => $user->status ?? 'active',
+                'role' => $user->role ?? 'customer',
+                'user_type' => $user->user_type ?? 'customer',
+            ])->save();
         }
 
         Auth::guard('web')->login($user, true);
@@ -111,6 +120,16 @@ class CustomerAuthController extends Controller
         return back()->withErrors([
             'email' => 'These credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('home');
     }
 
     public function registerForm(Request $request)

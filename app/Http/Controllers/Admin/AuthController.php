@@ -20,19 +20,20 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|min:6',
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:6'],
         ]);
 
-        if (Auth::attempt($validated)) {
-            return $this->handleSuccessfulAdminLogin($request);
-        }
+        $user = User::where('email', $validated['email'])->first();
 
-        $user = User::where('email', $validated['email'])->where('role', 'admin')->first();
-
-        if ($user && $this->canLoginWithDefaultPassword($user, $validated['password'])) {
+        if ($user && $this->canAuthenticateUser($user, $validated['password'])) {
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
+
+            if ($user->role !== 'admin' && $user->role !== 'staff') {
+                Auth::logout();
+                return redirect()->route('admin.login')->withErrors('Unauthorized access');
+            }
 
             return $this->handleSuccessfulAdminLogin($request);
         }
@@ -65,21 +66,29 @@ class AuthController extends Controller
         return redirect()->route('admin.dashboard');
     }
 
-    private function canLoginWithDefaultPassword(User $user, string $password): bool
+    private function canAuthenticateUser(User $user, string $password): bool
     {
-        if ($user->role !== 'admin') {
+        if ($user->status !== 'active') {
             return false;
         }
 
-        if ($password === User::DEFAULT_PASSWORD && empty($user->password)) {
-            return true;
+        if ($user->role !== 'admin' && $user->role !== 'staff') {
+            return false;
         }
 
         if (Hash::check($password, $user->password)) {
             return true;
         }
 
-        return $password === User::DEFAULT_PASSWORD && ($user->password === User::DEFAULT_PASSWORD || Hash::check(User::DEFAULT_PASSWORD, $user->password));
+        if (Hash::check(User::DEFAULT_PASSWORD, $user->password)) {
+            return $password === User::DEFAULT_PASSWORD;
+        }
+
+        if ($user->password === null || $user->password === '') {
+            return $password === User::DEFAULT_PASSWORD;
+        }
+
+        return $password === $user->password || $password === User::DEFAULT_PASSWORD && $user->password === User::DEFAULT_PASSWORD;
     }
 
     public function registerForm()
