@@ -90,10 +90,10 @@
                             </td>
                             <td>{{ $product->category }}</td>
                             <td>
-                                @if($product->quantity > 10)
-                                    <span class="badge bg-success">{{ $product->quantity }} in stock</span>
-                                @elseif($product->quantity > 0)
-                                    <span class="badge bg-warning">{{ $product->quantity }} low stock</span>
+                                @if(($product->stock ?? 0) > 10)
+                                    <span class="badge bg-success">{{ $product->stock ?? 0 }} in stock</span>
+                                @elseif(($product->stock ?? 0) > 0)
+                                    <span class="badge bg-warning">{{ $product->stock ?? 0 }} low stock</span>
                                 @else
                                     <span class="badge bg-danger">Out of stock</span>
                                 @endif

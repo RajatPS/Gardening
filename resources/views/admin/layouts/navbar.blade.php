@@ -8,7 +8,7 @@
             </form>
         </div>
 
-        <div class="navbar-nav ms-auto d-flex align-items-center">
+        <ul class="navbar-nav ms-auto d-flex align-items-center flex-row">
             <!-- Notifications -->
             @php
                 $notificationItems = collect();
@@ -76,6 +76,6 @@
                     </li>
                 </ul>
             </li>
-        </div>
+        </ul>
     </div>
 </nav>

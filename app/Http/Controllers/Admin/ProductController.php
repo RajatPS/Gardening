@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -28,11 +30,11 @@ class ProductController extends Controller
         if ($request->filled('stock_status')) {
             $status = $request->input('stock_status');
             if ($status === 'in_stock') {
-                $query->where('quantity', '>', 10);
+                $query->where('stock', '>', 10);
             } elseif ($status === 'low_stock') {
-                $query->whereBetween('quantity', [1, 10]);
+                $query->whereBetween('stock', [1, 10]);
             } elseif ($status === 'out_of_stock') {
-                $query->where('quantity', 0);
+                $query->where('stock', 0);
             }
         }
 
@@ -47,7 +49,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        return view('admin.product-create');
+        return view('admin.product-create', ['categories' => $this->allowedCategories()]);
     }
 
     public function store(Request $request)
@@ -55,20 +57,33 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'nullable|string|max:100',
-            'category' => 'required|string|max:100',
-            'quantity' => 'required|integer|min:0',
+            'category' => 'required|in:' . implode(',', $this->allowedCategories()),
             'price' => 'required|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
+            'stock' => 'required|integer|min:0',
+            'description' => 'nullable|string|max:2000',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
             'is_pet_safe' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
+            'confirm_details' => 'required|accepted',
         ]);
 
         $validated['sku'] = Product::generateUniqueSku($validated['name']);
-        $validated['stock'] = $validated['stock'] ?? $validated['quantity'];
         $validated['is_pet_safe'] = $request->boolean('is_pet_safe');
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $product = Product::create($validated);
+
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $imageFile) {
+                $path = $imageFile->store('products', 'public');
+                $product->images()->create([
+                    'path' => $path,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index,
+                ]);
+            }
+        }
 
         $this->logAudit('Product Added', 'products', $product->id, null, $product->toArray());
 
@@ -86,7 +101,10 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        return view('admin.product-management', compact('product'));
+        return view('admin.product-edit', [
+            'product' => $product,
+            'categories' => $this->allowedCategories(),
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -96,15 +114,13 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'nullable|string|max:100',
-            'category' => 'required|string|max:100',
-            'quantity' => 'required|integer|min:0',
+            'category' => 'required|in:' . implode(',', $this->allowedCategories()),
             'price' => 'required|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
+            'stock' => 'required|integer|min:0',
+            'description' => 'nullable|string|max:2000',
             'is_pet_safe' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
         ]);
-
-        $validated['stock'] = $validated['stock'] ?? $validated['quantity'];
         $validated['is_pet_safe'] = $request->boolean('is_pet_safe');
         $validated['is_active'] = $request->boolean('is_active', true);
 
@@ -128,6 +144,11 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully');
+    }
+
+    private function allowedCategories(): array
+    {
+        return ['Plants', 'Medicinal Plants', 'Accessories', 'Flowering Plants', 'Outdoor Plants', 'Bonsai'];
     }
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)

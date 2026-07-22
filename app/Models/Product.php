@@ -15,6 +15,7 @@ class Product extends Model
         'quantity',
         'price',
         'stock',
+        'description',
         'specifications',
         'care_profile',
         'is_pet_safe',
@@ -41,6 +42,16 @@ class Product extends Model
                 $product->sku = self::generateUniqueSku($product->name ?? 'product');
             }
         });
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(ProductImage::class)->where('is_primary', true)->orderBy('sort_order')->orderBy('id');
     }
 
     public static function generateUniqueSku(?string $name = 'product'): string

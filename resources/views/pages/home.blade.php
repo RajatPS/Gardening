@@ -73,18 +73,32 @@
 
     <section class="bg-stone-50 py-14">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <x-section-heading eyebrow="Catalog" title="Plant and accessory store" description="Structured storefront categories for plants, pots, stands, fertilizers, pesticides, tools, and irrigation accessories." />
-            <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($categories as $category)
-                    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                        <div class="flex items-center justify-between gap-4">
-                            <h3 class="text-lg font-semibold text-slate-950">{{ $category['name'] }}</h3>
-                            <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">{{ $category['count'] }}</span>
-                        </div>
-                        <p class="mt-3 text-sm leading-6 text-slate-600">Ready for filtering by care level, price, sunlight, watering needs, pet safety, and recommended products.</p>
-                    </div>
+            <div class="flex items-end justify-between gap-4">
+                <x-section-heading eyebrow="Featured products" title="Fresh arrivals from the catalog" description="The latest active products from the store are now showing on the home page and can be explored in the full catalog." />
+                <a href="{{ route('store') }}" class="text-sm font-semibold text-emerald-800 hover:text-emerald-900">View all products</a>
+            </div>
+            <div class="mt-10 grid gap-6 lg:grid-cols-3">
+                @foreach ($products as $product)
+                    <article class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <a href="{{ route('product.details', ['slug' => $product['slug']]) }}" class="block">
+                            <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" class="h-56 w-full object-cover">
+                            <div class="p-5">
+                                <p class="text-xs font-semibold uppercase text-emerald-800">{{ $product['category'] }}</p>
+                                <div class="mt-2 flex items-start justify-between gap-4">
+                                    <h3 class="text-lg font-semibold text-slate-950">{{ $product['name'] }}</h3>
+                                    <p class="text-lg font-semibold text-slate-950">{{ $product['price'] }}</p>
+                                </div>
+                                <p class="mt-3 text-sm text-slate-600">{{ $product['care'] }}</p>
+                            </div>
+                        </a>
+                    </article>
                 @endforeach
             </div>
+            @if ($hasMoreProducts ?? false)
+                <div class="mt-8 text-center">
+                    <a href="{{ route('store') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:border-emerald-500 hover:text-emerald-700">Browse more products</a>
+                </div>
+            @endif
         </div>
     </section>
 

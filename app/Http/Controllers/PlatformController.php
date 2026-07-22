@@ -2,26 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Services\AppointmentLocalityService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class PlatformController extends Controller
 {
     public function home(): View
     {
-        return view('pages.home', $this->sharedData());
+        $data = $this->sharedData();
+        $data['products'] = $this->getVisibleProducts()->take(4)->values()->map(fn (Product $product) => $this->mapProductForView($product))->all();
+        $data['hasMoreProducts'] = $this->getVisibleProducts()->count() > 4;
+
+        return view('pages.home', $data);
     }
 
     public function store(): View
     {
         $data = $this->sharedData();
+        $query = $this->getVisibleProducts();
         $category = request()->query('category');
         if ($category) {
-            $data['products'] = array_filter($data['products'], function($p) use ($category) {
-                return stripos($p['category'], $category) !== false || stripos($p['name'], $category) !== false;
-            });
+            $query = $query->filter(function (Product $product) use ($category): bool {
+                return stripos($product->category ?? '', $category) !== false || stripos($product->name ?? '', $category) !== false;
+            })->values();
         }
+
+        $data['products'] = $query->map(fn (Product $product) => $this->mapProductForView($product))->all();
+        $data['currentCategory'] = $category;
 
         return view('pages.store', $data);
     }
@@ -29,25 +39,14 @@ class PlatformController extends Controller
     public function productDetails(string $slug): View
     {
         $data = $this->sharedData();
-        $product = collect($data['products'])->first(function (array $item) use ($slug): bool {
-            return ($item['slug'] ?? Str::slug($item['name'])) === $slug;
+        $product = $this->getVisibleProducts()->first(function (Product $item) use ($slug): bool {
+            return ($item->type === 'product' ? Str::slug($item->name) : Str::slug($item->name)) === $slug || ($item->category ? Str::slug($item->category . '-' . $item->name) : null) === $slug;
         });
 
         abort_if($product === null, 404);
 
         return view('pages.product-details', array_merge($data, [
-            'product' => array_merge($product, [
-                'description' => $product['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.',
-                'details' => $product['details'] ?? [
-                    'Easy care and beginner-friendly guidance',
-                    'High-quality and nursery-ready materials',
-                    'Flexible delivery and support options',
-                ],
-                'gallery' => $product['gallery'] ?? [
-                    $product['image'],
-                    $product['image'],
-                ],
-            ]),
+            'product' => $this->mapProductForView($product, true),
         ]));
     }
 
@@ -168,6 +167,49 @@ class PlatformController extends Controller
         $booking = \App\Models\ServiceBooking::create($data);
 
         return redirect()->route('services')->with('success', 'Service request submitted — we will contact you shortly.');
+    }
+
+    private function getVisibleProducts()
+    {
+        return Product::query()
+            ->with(['primaryImage', 'images'])
+            ->where('is_active', true)
+            ->whereNotNull('name')
+            ->where('name', '!=', '')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    private function mapProductForView(Product $product, bool $includeDetails = false): array
+    {
+        $category = $product->category ?? 'Plants';
+        $name = $product->name ?? 'Product';
+        $price = (int) ($product->price ?? 0);
+        $slug = Str::slug($name);
+        $imagePath = $product->primaryImage?->path ?? $product->images->first()?->path ?? null;
+        $imageUrl = $imagePath ? Storage::disk('public')->url($imagePath) : 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
+        $specifications = is_array($product->specifications) ? $product->specifications : [];
+
+        return [
+            'id' => $product->id,
+            'name' => $name,
+            'slug' => $slug,
+            'category' => $category,
+            'price' => '₹' . number_format($price, 0),
+            'price_value' => $price,
+            'care' => $product->care_profile['care'] ?? $product->care_profile['watering'] ?? 'Easy care',
+            'image' => $imageUrl,
+            'description' => $specifications['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.',
+            'details' => $includeDetails ? ($specifications['details'] ?? [
+                'Easy care and beginner-friendly guidance',
+                'High-quality and nursery-ready materials',
+                'Flexible delivery and support options',
+            ]) : [],
+            'gallery' => [
+                $imageUrl,
+                'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
+            ],
+        ];
     }
 
     private function sharedData(): array

@@ -7,6 +7,13 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <x-section-heading eyebrow="Store" title="Plants, pots, tools and plant care essentials" description="A commerce foundation for the product catalog in the plan, ready for cart, checkout, reviews, specifications, and AI product questions." />
 
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href="{{ route('store') }}" class="rounded-full border px-4 py-2 text-sm font-semibold {{ empty($currentCategory) ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-300 text-slate-700 hover:border-emerald-500 hover:text-emerald-700' }}">All products</a>
+                @foreach (['Plants' => 'Plants', 'Indoor Plants' => 'Indoor Plants', 'Outdoor Plants' => 'Outdoor Plants'] as $query => $label)
+                    <a href="{{ route('store', ['category' => $query]) }}" class="rounded-full border px-4 py-2 text-sm font-semibold {{ ($currentCategory ?? '') === $query ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-300 text-slate-700 hover:border-emerald-500 hover:text-emerald-700' }}">{{ $label }}</a>
+                @endforeach
+            </div>
+
             <div class="mt-10 grid gap-6 lg:grid-cols-3">
                 @foreach ($products as $product)
                     <article class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
