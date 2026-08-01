@@ -33,8 +33,8 @@ class DashboardController extends Controller
 
         // Product Statistics
         $totalProducts = Product::count();
-        $lowStockProducts = Product::where('quantity', '<=', 10)->count();
-        $outOfStockProducts = Product::where('quantity', 0)->count();
+        $lowStockProducts = Product::where('stock', '<=', 10)->where('stock', '>', 0)->count();
+        $outOfStockProducts = Product::where('stock', 0)->count();
 
         // Appointment Statistics
         $upcomingVisits = ServiceBooking::where('booking_date', '>', Carbon::now())->count();

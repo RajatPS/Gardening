@@ -46,7 +46,7 @@ return new class extends Migration
                 $table->boolean('is_sent')->default(false);
                 $table->dateTime('sent_at')->nullable();
                 $table->timestamps();
-                $table->index(['user_id', 'notification_type', 'scheduled_at']);
+                $table->index(['user_id', 'notification_type', 'scheduled_at'], 'sched_notif_user_type_at_idx');
                 $table->index(['is_sent', 'scheduled_at']);
             });
         }

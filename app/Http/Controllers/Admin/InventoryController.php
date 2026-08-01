@@ -10,7 +10,7 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::select('id', 'name', 'sku', 'quantity');
+        $query = Product::select('id', 'name', 'sku', 'stock');
 
         // Search
         if ($request->filled('search')) {
@@ -25,9 +25,9 @@ class InventoryController extends Controller
         if ($request->filled('stock_status')) {
             $status = $request->input('stock_status');
             if ($status === 'low_stock') {
-                $query->whereBetween('quantity', [1, 10]);
+                $query->whereBetween('stock', [1, 10]);
             } elseif ($status === 'out_of_stock') {
-                $query->where('quantity', 0);
+                $query->where('stock', 0);
             }
         }
 
@@ -49,10 +49,10 @@ class InventoryController extends Controller
         ]);
 
         $product = Product::findOrFail($id);
-        $oldQuantity = $product->quantity;
-        $product->increment('quantity', $validated['quantity']);
+        $oldStock = $product->stock;
+        $product->increment('stock', $validated['quantity']);
 
-        $this->logAudit('Stock Increased', 'products', $id, $oldQuantity, $product->quantity);
+        $this->logAudit('Stock Increased', 'products', $id, $oldStock, $product->stock);
 
         return redirect()->back()->with('success', 'Stock added successfully');
     }
@@ -64,14 +64,14 @@ class InventoryController extends Controller
         ]);
 
         $product = Product::findOrFail($id);
-        if ($product->quantity < $validated['quantity']) {
+        if ($product->stock < $validated['quantity']) {
             return redirect()->back()->withErrors('Insufficient stock');
         }
 
-        $oldQuantity = $product->quantity;
-        $product->decrement('quantity', $validated['quantity']);
+        $oldStock = $product->stock;
+        $product->decrement('stock', $validated['quantity']);
 
-        $this->logAudit('Stock Reduced', 'products', $id, $oldQuantity, $product->quantity);
+        $this->logAudit('Stock Reduced', 'products', $id, $oldStock, $product->stock);
 
         return redirect()->back()->with('success', 'Stock reduced successfully');
     }
@@ -83,10 +83,10 @@ class InventoryController extends Controller
         ]);
 
         $product = Product::findOrFail($id);
-        $oldQuantity = $product->quantity;
-        $product->update(['quantity' => $validated['quantity']]);
+        $oldStock = $product->stock;
+        $product->update(['stock' => $validated['quantity']]);
 
-        $this->logAudit('Inventory Adjusted', 'products', $id, $oldQuantity, $validated['quantity']);
+        $this->logAudit('Inventory Adjusted', 'products', $id, $oldStock, $validated['quantity']);
 
         return redirect()->back()->with('success', 'Inventory adjusted successfully');
     }

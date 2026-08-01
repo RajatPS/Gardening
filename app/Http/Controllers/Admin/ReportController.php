@@ -85,9 +85,9 @@ class ReportController extends Controller
     {
         return [
             'total' => DB::table('products')->count(),
-            'active' => DB::table('products')->where('status', 'active')->count(),
-            'low_stock' => DB::table('products')->whereBetween('quantity', [1, 10])->count(),
-            'out_of_stock' => DB::table('products')->where('quantity', 0)->count(),
+            'active' => DB::table('products')->where('is_active', true)->count(),
+            'low_stock' => DB::table('products')->whereBetween('stock', [1, 10])->count(),
+            'out_of_stock' => DB::table('products')->where('stock', 0)->count(),
         ];
     }
 

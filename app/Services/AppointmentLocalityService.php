@@ -13,14 +13,36 @@ class AppointmentLocalityService
             return false;
         }
 
-        if (strtolower($staffCity) === strtolower($appointmentCity)) {
+        // Quick equality match (case-insensitive)
+        if (strcasecmp($staffCity, $appointmentCity) === 0) {
             return true;
         }
 
         $distanceService = new LocationDistanceService();
         $distance = $distanceService->calculateDistanceKm($staffCity, $appointmentCity);
 
-        return $distance !== null && $distance <= 150;
+        if ($distance !== null) {
+            return $distance <= 150;
+        }
+
+        // Geocoding/distance lookup failed — apply a resilient fallback comparison.
+        // Normalize further by removing punctuation and extra whitespace then compare.
+        $normStaff = $this->normalizeForComparison($staffCity);
+        $normAppointment = $this->normalizeForComparison($appointmentCity);
+
+        return $normStaff !== '' && $normStaff === $normAppointment;
+    }
+
+    private function normalizeForComparison(string $city): string
+    {
+        $s = mb_strtolower($city);
+        // Remove punctuation and non-alphanumeric characters but keep spaces
+        $s = preg_replace('/[^a-z0-9\s]/u', '', $s);
+        // Collapse multiple spaces
+        $s = preg_replace('/\s+/', ' ', $s);
+        $s = trim($s);
+
+        return $s ?? '';
     }
 
     public function resolveBookingCity(?string $city, ?string $address = null): ?string

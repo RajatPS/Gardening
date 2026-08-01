@@ -54,12 +54,12 @@
                             <td><strong>{{ $product->name }}</strong></td>
                             <td>{{ $product->sku }}</td>
                             <td>
-                                <span class="badge bg-light text-dark">{{ $product->quantity }} units</span>
+                                <span class="badge bg-light text-dark">{{ $product->stock }} units</span>
                             </td>
                             <td>
-                                @if($product->quantity > 10)
+                                @if($product->stock > 10)
                                     <span class="badge bg-success">In Stock</span>
-                                @elseif($product->quantity > 0)
+                                @elseif($product->stock > 0)
                                     <span class="badge bg-warning">Low Stock</span>
                                 @else
                                     <span class="badge bg-danger">Out of Stock</span>

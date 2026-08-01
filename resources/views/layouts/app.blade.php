@@ -139,6 +139,13 @@
         @endif
 
         <main>@yield('content')</main>
+
+        @php
+            $showUserFooter = ! request()->routeIs(['admin.*', 'staff.*']);
+        @endphp
+        @if ($showUserFooter)
+            <x-site-footer />
+        @endif
     </div>
 
     <script>

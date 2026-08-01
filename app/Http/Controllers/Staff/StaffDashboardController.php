@@ -18,17 +18,17 @@ class StaffDashboardController extends Controller
         $localityService = new AppointmentLocalityService();
         $staffCity = $staff->city;
 
+        // Retrieve candidate bookings: unassigned bookings or those already assigned to this staff.
+        // We'll filter them in PHP using the locality service to ensure correct geographic matching.
         $nearbyAppointments = ServiceBooking::query()
             ->where(function ($query) use ($staff) {
                 $query->whereNull('assigned_staff_id')
                     ->orWhere('assigned_staff_id', $staff->id);
             })
-            ->where(function ($query) use ($staffCity, $localityService) {
-                $query->whereNull('city')
-                    ->orWhereRaw('1 = 0');
-            })
+            // Exclude finalized bookings so staff only sees actionable items
+            ->whereNotIn('status', ['completed', 'cancelled'])
             ->latest('booking_date')
-            ->take(20)
+            ->take(100)
             ->get();
 
         $relevantAppointments = collect();
@@ -39,22 +39,15 @@ class StaffDashboardController extends Controller
             }
         }
 
-        $assignedAppointments = ServiceBooking::where('assigned_staff_id', $staff->id)
-            ->latest('booking_date')
-            ->take(10)
-            ->get();
+        $assignedQuery = $this->assignedQueryForStaff($staff->id);
 
-        $pendingAppointments = ServiceBooking::where('assigned_staff_id', $staff->id)
-            ->where('status', 'pending')
-            ->count();
+        $assignedAppointments = (clone $assignedQuery)->latest('booking_date')->take(10)->get();
 
-        $completedAppointments = ServiceBooking::where('assigned_staff_id', $staff->id)
-            ->where('status', 'completed')
-            ->count();
+        $pendingAppointments = (clone $assignedQuery)->where('status', 'pending')->count();
 
-        $todayAppointments = ServiceBooking::where('assigned_staff_id', $staff->id)
-            ->whereDate('booking_date', Carbon::today())
-            ->count();
+        $completedAppointments = (clone $assignedQuery)->where('status', 'completed')->count();
+
+        $todayAppointments = (clone $assignedQuery)->whereDate('booking_date', Carbon::today())->count();
 
         return view('staff.dashboard', compact(
             'staff',
@@ -74,15 +67,43 @@ class StaffDashboardController extends Controller
             return redirect()->route('staff.login');
         }
 
+        // Prevent accepting bookings that are already assigned to another staff
         if ($booking->assigned_staff_id && $booking->assigned_staff_id !== $staff->id) {
             return redirect()->back()->withErrors('This appointment is already assigned to another staff member.');
         }
 
-        $booking->update([
-            'assigned_staff_id' => $staff->id,
-            'status' => 'assigned',
-        ]);
+        // Only allow acceptance for bookings that are in an actionable status
+        $disallowedStatuses = ['completed', 'cancelled'];
+        if (in_array($booking->status, $disallowedStatuses, true)) {
+            return redirect()->back()->withErrors('This appointment cannot be accepted.');
+        }
+
+        // Verify geographic/service area relevance
+        $localityService = new AppointmentLocalityService();
+        $bookingCity = $localityService->resolveBookingCity($booking->city, $booking->address_line);
+        if ($booking->assigned_staff_id === null && ! $localityService->isRelevant($staff->city, $bookingCity, $booking->address_line)) {
+            return redirect()->back()->withErrors('You are not authorised to accept this appointment (outside your service area).');
+        }
+
+        // Final assignment: use a DB transaction to avoid races where two staff accept simultaneously
+        \DB::transaction(function () use ($booking, $staff) {
+            $fresh = ServiceBooking::lockForUpdate()->find($booking->id);
+
+            if ($fresh->assigned_staff_id && $fresh->assigned_staff_id !== $staff->id) {
+                throw new \RuntimeException('Appointment already assigned');
+            }
+
+            $fresh->update([
+                'assigned_staff_id' => $staff->id,
+                'status' => 'assigned',
+            ]);
+        });
 
         return redirect()->back()->with('success', 'Appointment accepted successfully.');
+    }
+
+    private function assignedQueryForStaff(int $staffId)
+    {
+        return ServiceBooking::query()->where('assigned_staff_id', $staffId);
     }
 }

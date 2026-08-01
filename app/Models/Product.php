@@ -12,8 +12,8 @@ class Product extends Model
         'type',
         'category',
         'sku',
-        'quantity',
         'price',
+        'quantity',
         'stock',
         'description',
         'specifications',
@@ -29,8 +29,8 @@ class Product extends Model
             'care_profile' => 'array',
             'is_pet_safe' => 'boolean',
             'is_active' => 'boolean',
-            'quantity' => 'integer',
             'price' => 'integer',
+            'quantity' => 'integer',
             'stock' => 'integer',
         ];
     }

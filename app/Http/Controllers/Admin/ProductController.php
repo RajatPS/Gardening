@@ -23,8 +23,8 @@ class ProductController extends Controller
             });
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->input('is_active'));
         }
 
         if ($request->filled('stock_status')) {
@@ -38,8 +38,14 @@ class ProductController extends Controller
             }
         }
 
+        $allowedSorts = ['created_at', 'name', 'price', 'stock', 'category', 'is_active'];
         $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
+        $sortOrder = strtolower($request->input('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+
         $query->orderBy($sortBy, $sortOrder);
 
         $products = $query->paginate(15);
@@ -74,14 +80,34 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
+        $order = $request->input('image_order', []);
+        
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $imageFile) {
-                $path = $imageFile->store('products', 'public');
-                $product->images()->create([
-                    'path' => $path,
-                    'is_primary' => $index === 0,
-                    'sort_order' => $index,
-                ]);
+            $files = $request->file('images');
+            
+            if (empty($order)) {
+                foreach ($files as $index => $imageFile) {
+                    $path = $imageFile->store('products', 'public');
+                    $product->images()->create([
+                        'path' => $path,
+                        'is_primary' => $index === 0,
+                        'sort_order' => $index,
+                    ]);
+                }
+            } else {
+                foreach ($order as $index => $orderRef) {
+                    if (str_starts_with($orderRef, 'new_')) {
+                        $fileIndex = (int) str_replace('new_', '', $orderRef);
+                        if (isset($files[$fileIndex])) {
+                            $path = $files[$fileIndex]->store('products', 'public');
+                            $product->images()->create([
+                                'path' => $path,
+                                'is_primary' => $index === 0,
+                                'sort_order' => $index,
+                            ]);
+                        }
+                    }
+                }
             }
         }
 
@@ -118,6 +144,10 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'description' => 'nullable|string|max:2000',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
+            'delete_images' => 'nullable|array',
+            'delete_images.*' => 'exists:product_images,id',
             'is_pet_safe' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
         ]);
@@ -129,6 +159,63 @@ class ProductController extends Controller
         }
 
         $product->update($validated);
+
+        if ($request->filled('delete_images')) {
+            $imagesToDelete = $product->images()->whereIn('id', $request->input('delete_images'))->get();
+            foreach ($imagesToDelete as $image) {
+                Storage::disk('public')->delete($image->path);
+                $image->delete();
+            }
+        }
+
+        $order = $request->input('image_order', []);
+        $files = $request->file('images', []);
+
+        if (empty($order)) {
+            if ($request->hasFile('images')) {
+                $maxSortOrder = $product->images()->max('sort_order') ?? -1;
+                foreach ($request->file('images') as $index => $imageFile) {
+                    $path = $imageFile->store('products', 'public');
+                    $product->images()->create([
+                        'path' => $path,
+                        'is_primary' => false,
+                        'sort_order' => $maxSortOrder + $index + 1,
+                    ]);
+                }
+            }
+        } else {
+            $product->images()->update(['is_primary' => false]);
+            
+            foreach ($order as $index => $orderRef) {
+                if (str_starts_with($orderRef, 'existing_')) {
+                    $imageId = (int) str_replace('existing_', '', $orderRef);
+                    $image = $product->images()->find($imageId);
+                    if ($image) {
+                        $image->update([
+                            'is_primary' => $index === 0,
+                            'sort_order' => $index,
+                        ]);
+                    }
+                } elseif (str_starts_with($orderRef, 'new_')) {
+                    $fileIndex = (int) str_replace('new_', '', $orderRef);
+                    if (isset($files[$fileIndex])) {
+                        $path = $files[$fileIndex]->store('products', 'public');
+                        $product->images()->create([
+                            'path' => $path,
+                            'is_primary' => $index === 0,
+                            'sort_order' => $index,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        if ($product->images()->count() > 0 && !$product->images()->where('is_primary', true)->exists()) {
+            $firstImage = $product->images()->orderBy('sort_order')->orderBy('id')->first();
+            if ($firstImage) {
+                $firstImage->update(['is_primary' => true]);
+            }
+        }
 
         $this->logAudit('Product Updated', 'products', $product->id, null, $validated);
 

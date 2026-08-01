@@ -10,6 +10,7 @@ class SavedProduct extends Model
     protected $fillable = [
         'user_id',
         'session_id',
+        'product_id',
         'product_name',
         'product_category',
         'price',

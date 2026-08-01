@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\SubscriptionPlan;
+use App\Models\Subscription;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 
@@ -10,7 +10,7 @@ class SubscriptionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SubscriptionPlan::with('user', 'plan');
+        $query = Subscription::with('user', 'plan');
 
         // Search
         if ($request->filled('search')) {
@@ -38,7 +38,7 @@ class SubscriptionController extends Controller
 
     public function show($id)
     {
-        $subscription = SubscriptionPlan::with('user', 'plan')->findOrFail($id);
+        $subscription = Subscription::with('user', 'plan')->findOrFail($id);
         $history = $subscription->history()->paginate(10);
 
         return view('admin.subscription-management', compact('subscription', 'history'));
@@ -46,7 +46,7 @@ class SubscriptionController extends Controller
 
     public function renew($id)
     {
-        $subscription = SubscriptionPlan::findOrFail($id);
+        $subscription = Subscription::findOrFail($id);
         
         $endDate = $subscription->end_date->addMonth();
         $subscription->update(['end_date' => $endDate, 'status' => 'active']);
@@ -62,7 +62,7 @@ class SubscriptionController extends Controller
             'plan_id' => 'required|exists:subscription_plans,id'
         ]);
 
-        $subscription = SubscriptionPlan::findOrFail($id);
+        $subscription = Subscription::findOrFail($id);
         $subscription->update(['plan_id' => $validated['plan_id']]);
 
         $this->logAudit('Subscription Upgraded', 'subscriptions', $id, null, $validated['plan_id']);

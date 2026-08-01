@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\SavedProduct;
 use App\Services\AppointmentLocalityService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,7 @@ class PlatformController extends Controller
         $data = $this->sharedData();
         $data['products'] = $this->getVisibleProducts()->take(4)->values()->map(fn (Product $product) => $this->mapProductForView($product))->all();
         $data['hasMoreProducts'] = $this->getVisibleProducts()->count() > 4;
+        $data['savedProductNames'] = $this->getSavedProductNames();
 
         return view('pages.home', $data);
     }
@@ -22,16 +24,39 @@ class PlatformController extends Controller
     public function store(): View
     {
         $data = $this->sharedData();
-        $query = $this->getVisibleProducts();
         $category = request()->query('category');
+        $search = request()->query('q') ?? request()->query('search');
+
+        $query = $this->getVisibleProductsQuery();
+
         if ($category) {
-            $query = $query->filter(function (Product $product) use ($category): bool {
-                return stripos($product->category ?? '', $category) !== false || stripos($product->name ?? '', $category) !== false;
-            })->values();
+            $query->where(function ($q) use ($category) {
+                $q->where('category', 'like', "%{$category}%")
+                    ->orWhere('name', 'like', "%{$category}%");
+            });
         }
 
-        $data['products'] = $query->map(fn (Product $product) => $this->mapProductForView($product))->all();
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $allowedSorts = ['created_at', 'name', 'price', 'stock', 'category'];
+        $sortBy = request()->query('sort_by', 'created_at');
+        $sortOrder = strtolower(request()->query('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+
+        $productsPaginator = $query->orderBy($sortBy, $sortOrder)->paginate(15)->appends(request()->query());
+
+        $data['products'] = $productsPaginator->getCollection()->map(fn (Product $product) => $this->mapProductForView($product))->all();
+        $data['productsPaginator'] = $productsPaginator;
         $data['currentCategory'] = $category;
+        $data['savedProductNames'] = $this->getSavedProductNames();
 
         return view('pages.store', $data);
     }
@@ -45,8 +70,11 @@ class PlatformController extends Controller
 
         abort_if($product === null, 404);
 
+        $mappedProduct = $this->mapProductForView($product, true);
+
         return view('pages.product-details', array_merge($data, [
-            'product' => $this->mapProductForView($product, true),
+            'product'            => $mappedProduct,
+            'savedProductNames'  => $this->getSavedProductNames(),
         ]));
     }
 
@@ -171,13 +199,29 @@ class PlatformController extends Controller
 
     private function getVisibleProducts()
     {
+        return $this->getVisibleProductsQuery()->get();
+    }
+
+    private function getVisibleProductsQuery()
+    {
         return Product::query()
             ->with(['primaryImage', 'images'])
             ->where('is_active', true)
             ->whereNotNull('name')
-            ->where('name', '!=', '')
-            ->orderByDesc('created_at')
-            ->get();
+            ->where('name', '!=', '');
+    }
+
+    private function getSavedProductNames(): array
+    {
+        if (auth()->check()) {
+            return SavedProduct::where('user_id', auth()->id())
+                ->pluck('product_id')
+                ->toArray();
+        }
+
+        return SavedProduct::where('session_id', session()->getId())
+            ->pluck('product_id')
+            ->toArray();
     }
 
     private function mapProductForView(Product $product, bool $includeDetails = false): array
@@ -189,6 +233,19 @@ class PlatformController extends Controller
         $imagePath = $product->primaryImage?->path ?? $product->images->first()?->path ?? null;
         $imageUrl = $imagePath ? Storage::disk('public')->url($imagePath) : 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
         $specifications = is_array($product->specifications) ? $product->specifications : [];
+        $careProfile = is_array($product->care_profile) ? $product->care_profile : [];
+
+        $gallery = [];
+        if ($product->images && $product->images->count() > 0) {
+            foreach ($product->images as $image) {
+                $gallery[] = Storage::disk('public')->url($image->path);
+            }
+        } else {
+            $gallery = [
+                $imageUrl,
+                'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
+            ];
+        }
 
         return [
             'id' => $product->id,
@@ -197,7 +254,7 @@ class PlatformController extends Controller
             'category' => $category,
             'price' => '₹' . number_format($price, 0),
             'price_value' => $price,
-            'care' => $product->care_profile['care'] ?? $product->care_profile['watering'] ?? 'Easy care',
+            'care' => $careProfile['care'] ?? $careProfile['watering'] ?? 'Easy care',
             'image' => $imageUrl,
             'description' => $specifications['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.',
             'details' => $includeDetails ? ($specifications['details'] ?? [
@@ -205,10 +262,7 @@ class PlatformController extends Controller
                 'High-quality and nursery-ready materials',
                 'Flexible delivery and support options',
             ]) : [],
-            'gallery' => [
-                $imageUrl,
-                'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
-            ],
+            'gallery' => $gallery,
         ];
     }
 

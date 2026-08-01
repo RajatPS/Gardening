@@ -23,6 +23,12 @@ Route::controller(PlatformController::class)->group(function (): void {
     Route::get('/operations', 'operations')->name('operations');
 });
 
+// Provide a named `login` route fallback so the default `auth` middleware
+// can redirect unauthenticated users safely. Redirects to the customer login.
+Route::get('/login', function () {
+    return redirect()->route('customer.login');
+})->name('login');
+
 Route::get('/auth/google/redirect', [\App\Http\Controllers\CustomerAuthController::class, 'googleRedirect'])->name('customer.google.redirect');
 Route::get('/customer/google/redirect', [\App\Http\Controllers\CustomerAuthController::class, 'googleRedirect']);
 Route::get('/auth/google/callback', [\App\Http\Controllers\CustomerAuthController::class, 'googleCallback'])->name('customer.google.callback');
@@ -38,6 +44,7 @@ Route::post('/customer/reset-password', [\App\Http\Controllers\CustomerAuthContr
 
 Route::post('/customer/cart/add', [\App\Http\Controllers\CustomerAccountController::class, 'addToCart'])->name('customer.cart.add');
 Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
+Route::post('/customer/saved-products/toggle', [\App\Http\Controllers\CustomerAccountController::class, 'toggleSavedProduct'])->name('customer.saved-products.toggle');
 Route::post('/customer/logout', [\App\Http\Controllers\CustomerAuthController::class, 'logout'])->name('customer.logout');
 
 Route::middleware('customer.auth')->group(function (): void {
@@ -46,10 +53,13 @@ Route::middleware('customer.auth')->group(function (): void {
     Route::delete('/customer/cart/{cartItem}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeCartItem'])->name('customer.cart.remove');
     Route::get('/customer/orders', [\App\Http\Controllers\CustomerAccountController::class, 'orders'])->name('customer.orders');
     Route::post('/customer/checkout', [\App\Http\Controllers\CustomerAccountController::class, 'checkout'])->name('customer.checkout');
+    Route::post('/customer/checkout/pay', [\App\Http\Controllers\CustomerAccountController::class, 'checkoutPay'])->name('customer.checkout.pay');
+    Route::post('/customer/checkout/verify', [\App\Http\Controllers\CustomerAccountController::class, 'checkoutVerify'])->name('customer.checkout.verify');
     Route::post('/customer/buy-now', [\App\Http\Controllers\CustomerAccountController::class, 'buyNow'])->name('customer.buy-now');
     Route::get('/customer/saved-products', [\App\Http\Controllers\CustomerAccountController::class, 'savedProducts'])->name('customer.saved-products');
     Route::delete('/customer/saved-products/{savedProduct}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeSavedProduct'])->name('customer.saved-products.remove');
     Route::get('/customer/profile', [\App\Http\Controllers\CustomerAccountController::class, 'profile'])->name('customer.profile');
+    Route::put('/customer/profile', [\App\Http\Controllers\CustomerAccountController::class, 'updateProfile'])->name('customer.profile.update');
     Route::get('/customer/change-password', [\App\Http\Controllers\CustomerAuthController::class, 'changePasswordForm'])->name('customer.change-password');
     Route::post('/customer/change-password', [\App\Http\Controllers\CustomerAuthController::class, 'changePassword'])->name('customer.change-password.post');
 });

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('subscription_id')->nullable()->constrained('subscriptions')->onDelete('cascade');
+            $table->foreignId('subscription_id')->nullable();
             $table->foreignId('order_id')->nullable()->constrained('orders')->onDelete('cascade');
             $table->string('transaction_id')->unique();
             $table->decimal('amount', 10, 2);

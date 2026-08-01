@@ -10,6 +10,7 @@ class CartItem extends Model
     protected $fillable = [
         'user_id',
         'session_id',
+        'product_id',
         'product_name',
         'product_category',
         'price',
@@ -23,6 +24,7 @@ class CartItem extends Model
         return [
             'price' => 'decimal:2',
             'quantity' => 'integer',
+            'product_id' => 'integer',
             'metadata' => 'array',
         ];
     }
