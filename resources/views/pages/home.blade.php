@@ -220,5 +220,21 @@
                     });
             });
         })();
+
+        // Prevent duplicate add-to-cart submissions on home page
+        (function () {
+            document.querySelectorAll('form[action="{{ route('customer.cart.add') }}"]').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    const btn = form.querySelector('button[type="submit"]');
+                    if (!btn) return;
+                    if (btn.dataset.pending === 'true') {
+                        e.preventDefault();
+                        return;
+                    }
+                    btn.dataset.pending = 'true';
+                    btn.disabled = true;
+                });
+            });
+        })();
     </script>
 @endsection

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -32,9 +33,13 @@ class UserController extends Controller
             $query->where('user_type', $request->input('user_type'));
         }
 
-        // Sorting
+        // Sorting with whitelist validation
+        $allowedSorts = ['created_at', 'name', 'email', 'status', 'user_type'];
         $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+        $sortOrder = strtolower($request->input('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
@@ -113,6 +118,15 @@ class UserController extends Controller
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
-        // Will implement audit logging later
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action_type' => $action,
+            'module' => $module,
+            'record_id' => $recordId,
+            'old_value' => is_array($oldValue) ? json_encode($oldValue) : (string) ($oldValue ?? ''),
+            'new_value' => is_array($newValue) ? json_encode($newValue) : (string) ($newValue ?? ''),
+            'ip_address' => request()->ip(),
+            'device_info' => request()->header('User-Agent'),
+        ]);
     }
 }

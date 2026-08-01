@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class LocationDistanceService
 {
@@ -43,25 +44,29 @@ class LocationDistanceService
 
     private function geocode(string $location): ?array
     {
-        $response = Http::get('https://nominatim.openstreetmap.org/search', [
-            'format' => 'jsonv2',
-            'limit' => 1,
-            'q' => $location,
-        ]);
+        $cacheKey = 'geocode:' . md5(strtolower(trim($location)));
 
-        if (! $response->successful()) {
-            return null;
-        }
+        return Cache::remember($cacheKey, now()->addDays(7), function () use ($location) {
+            $response = Http::get('https://nominatim.openstreetmap.org/search', [
+                'format' => 'jsonv2',
+                'limit' => 1,
+                'q' => $location,
+            ]);
 
-        $data = $response->json();
+            if (! $response->successful()) {
+                return null;
+            }
 
-        if (! is_array($data) || empty($data[0])) {
-            return null;
-        }
+            $data = $response->json();
 
-        return [
-            'lat' => (float) $data[0]['lat'],
-            'lon' => (float) $data[0]['lon'],
-        ];
+            if (! is_array($data) || empty($data[0])) {
+                return null;
+            }
+
+            return [
+                'lat' => (float) $data[0]['lat'],
+                'lon' => (float) $data[0]['lon'],
+            ];
+        });
     }
 }

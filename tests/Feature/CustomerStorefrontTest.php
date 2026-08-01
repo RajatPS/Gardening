@@ -47,6 +47,9 @@ class CustomerStorefrontTest extends TestCase
             'stock' => 5,
         ]);
 
+        $user = User::factory()->create(['role' => 'customer']);
+        $this->actingAs($user);
+
         $response = $this->post(route('customer.saved-products.save'), [
             'product_id' => $product->id,
         ]);
@@ -55,7 +58,7 @@ class CustomerStorefrontTest extends TestCase
         $response->assertSessionHas('success', 'Product saved to your list.');
         $this->assertDatabaseHas('saved_products', [
             'product_id' => $product->id,
-            'session_id' => session()->getId(),
+            'user_id' => $user->id,
         ]);
     }
 

@@ -330,14 +330,12 @@ class CustomerAccountController extends Controller
         $product = Product::findOrFail($validated['product_id']);
         $scope = $this->scopeAttributes();
 
-        $query = SavedProduct::query()
-            ->where('product_id', $product->id);
+        // Require authenticated user for saved product operations
+        abort_if(empty($scope['user_id']), 403);
 
-        if ($scope['user_id']) {
-            $query->where('user_id', $scope['user_id']);
-        } else {
-            $query->whereNull('user_id')->where('session_id', $scope['session_id']);
-        }
+        $query = SavedProduct::query()
+            ->where('product_id', $product->id)
+            ->where('user_id', $scope['user_id']);
 
         $existing = $query->first();
 
@@ -347,11 +345,10 @@ class CustomerAccountController extends Controller
         }
 
         SavedProduct::firstOrCreate(
-            array_filter([
-                'user_id'      => $scope['user_id'] ?? null,
-                'session_id'   => $scope['user_id'] ? null : $scope['session_id'],
-                'product_id'   => $product->id,
-            ], fn ($v) => $v !== null),
+            [
+                'user_id'    => $scope['user_id'],
+                'product_id' => $product->id,
+            ],
             [
                 'product_name'     => $product->name,
                 'product_category' => $product->category,
@@ -373,14 +370,12 @@ class CustomerAccountController extends Controller
         $product = Product::findOrFail($validated['product_id']);
         $scope = $this->scopeAttributes();
 
-        $query = SavedProduct::query()
-            ->where('product_id', $product->id);
+        // Require authenticated user for saved product operations
+        abort_if(empty($scope['user_id']), 403);
 
-        if ($scope['user_id']) {
-            $query->where('user_id', $scope['user_id']);
-        } else {
-            $query->whereNull('user_id')->where('session_id', $scope['session_id']);
-        }
+        $query = SavedProduct::query()
+            ->where('product_id', $product->id)
+            ->where('user_id', $scope['user_id']);
 
         $existing = $query->first();
 
@@ -394,11 +389,10 @@ class CustomerAccountController extends Controller
         }
 
         SavedProduct::firstOrCreate(
-            array_filter([
-                'user_id'      => $scope['user_id'] ?? null,
-                'session_id'   => $scope['user_id'] ? null : $scope['session_id'],
-                'product_id'   => $product->id,
-            ], fn ($v) => $v !== null),
+            [
+                'user_id'    => $scope['user_id'],
+                'product_id' => $product->id,
+            ],
             [
                 'product_name'     => $product->name,
                 'product_category' => $product->category,

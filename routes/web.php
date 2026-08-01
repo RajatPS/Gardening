@@ -43,8 +43,8 @@ Route::get('/customer/reset-password/{token}', [\App\Http\Controllers\CustomerAu
 Route::post('/customer/reset-password', [\App\Http\Controllers\CustomerAuthController::class, 'resetPassword'])->name('customer.reset-password.post');
 
 Route::post('/customer/cart/add', [\App\Http\Controllers\CustomerAccountController::class, 'addToCart'])->name('customer.cart.add');
-Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save');
-Route::post('/customer/saved-products/toggle', [\App\Http\Controllers\CustomerAccountController::class, 'toggleSavedProduct'])->name('customer.saved-products.toggle');
+Route::post('/customer/saved-products/save', [\App\Http\Controllers\CustomerAccountController::class, 'saveProduct'])->name('customer.saved-products.save')->middleware('customer.auth');
+Route::post('/customer/saved-products/toggle', [\App\Http\Controllers\CustomerAccountController::class, 'toggleSavedProduct'])->name('customer.saved-products.toggle')->middleware('customer.auth');
 Route::post('/customer/logout', [\App\Http\Controllers\CustomerAuthController::class, 'logout'])->name('customer.logout');
 
 Route::middleware('customer.auth')->group(function (): void {

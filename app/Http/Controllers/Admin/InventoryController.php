@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Product;
+use App\Models\AuditLog;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 
@@ -31,9 +32,13 @@ class InventoryController extends Controller
             }
         }
 
-        // Sorting
+        // Sorting with whitelist validation
+        $allowedSorts = ['name', 'sku', 'stock'];
         $sortBy = $request->input('sort_by', 'name');
-        $sortOrder = $request->input('sort_order', 'asc');
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'name';
+        }
+        $sortOrder = strtolower($request->input('sort_order', 'asc')) === 'desc' ? 'desc' : 'asc';
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
@@ -93,6 +98,15 @@ class InventoryController extends Controller
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
-        // Will implement audit logging later
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action_type' => $action,
+            'module' => $module,
+            'record_id' => $recordId,
+            'old_value' => is_array($oldValue) ? json_encode($oldValue) : (string) ($oldValue ?? ''),
+            'new_value' => is_array($newValue) ? json_encode($newValue) : (string) ($newValue ?? ''),
+            'ip_address' => request()->ip(),
+            'device_info' => request()->header('User-Agent'),
+        ]);
     }
 }

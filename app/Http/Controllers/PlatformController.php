@@ -14,8 +14,9 @@ class PlatformController extends Controller
     public function home(): View
     {
         $data = $this->sharedData();
-        $data['products'] = $this->getVisibleProducts()->take(4)->values()->map(fn (Product $product) => $this->mapProductForView($product))->all();
-        $data['hasMoreProducts'] = $this->getVisibleProducts()->count() > 4;
+        $visible = $this->getVisibleProducts();
+        $data['products'] = $visible->take(4)->values()->map(fn (Product $product) => $this->mapProductForView($product))->all();
+        $data['hasMoreProducts'] = $visible->count() > 4;
         $data['savedProductNames'] = $this->getSavedProductNames();
 
         return view('pages.home', $data);

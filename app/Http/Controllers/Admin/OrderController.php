@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class OrderController extends Controller
 {
@@ -32,9 +34,13 @@ class OrderController extends Controller
             $query->where('orders.payment_status', $request->input('payment_status'));
         }
 
-        // Sorting
+        // Sorting with whitelist validation
+        $allowedSorts = ['orders.created_at', 'order_number', 'status', 'payment_status', 'total_amount', 'user_id'];
         $sortBy = $request->input('sort_by', 'orders.created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'orders.created_at';
+        }
+        $sortOrder = strtolower($request->input('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
@@ -72,10 +78,40 @@ class OrderController extends Controller
     {
         $order = DB::table('orders')->where('id', $id)->first();
         if (!$order) abort(404);
+        $items = DB::table('order_items')->where('order_id', $id)->get();
+        $customer = DB::table('users')->where('id', $order->user_id)->first();
 
-        // Generate PDF invoice
-        // This is a placeholder - implement PDF generation
-        return response()->download('invoices/order-' . $order->order_number . '.pdf');
+        // Compute summary matching storefront calculations
+        $subtotal = (float) collect($items)->sum(fn ($item) => ((float) ($item->price ?? 0)) * ((int) ($item->quantity ?? 1)));
+        $delivery = 20.0;
+        $gst = round($subtotal * 0.18, 2);
+        $grandTotal = round($subtotal + $delivery + $gst, 2);
+
+        $summary = [
+            'subtotal' => round($subtotal, 2),
+            'delivery' => round($delivery, 2),
+            'gst' => $gst,
+            'grand_total' => $grandTotal,
+        ];
+
+        $data = [
+            'order' => $order,
+            'items' => $items,
+            'customer' => $customer,
+            'billing_address' => $order->shipping_address,
+            'payment_status' => $order->payment_status,
+            'payment_method' => $order->payment_method ?? 'N/A',
+            'order_date' => optional($order->created_at)->toDateString() ?? date('Y-m-d'),
+            'invoice_number' => 'INV-' . $order->order_number,
+            'summary' => $summary,
+            'notes' => $order->notes,
+        ];
+
+        $pdf = PDF::loadView('admin.invoices.invoice', $data)->setPaper('a4', 'portrait');
+
+        $filename = 'invoice-' . $order->order_number . '.pdf';
+
+        return $pdf->stream($filename);
     }
 
     public function cancel($id)
@@ -98,6 +134,15 @@ class OrderController extends Controller
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
-        // Will implement audit logging later
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action_type' => $action,
+            'module' => $module,
+            'record_id' => $recordId,
+            'old_value' => is_array($oldValue) ? json_encode($oldValue) : (string) ($oldValue ?? ''),
+            'new_value' => is_array($newValue) ? json_encode($newValue) : (string) ($newValue ?? ''),
+            'ip_address' => request()->ip(),
+            'device_info' => request()->header('User-Agent'),
+        ]);
     }
 }

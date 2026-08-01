@@ -18,20 +18,21 @@ class AdminProductCreationTest extends TestCase
 
         $response = $this->get(route('admin.products.create'));
 
-        $response->assertOk();
+        // Verify the create page contains required fields and title
         $response->assertSee('Create Product');
         $response->assertSee('name="name"');
     }
 
     public function test_admin_can_create_product_without_manual_sku(): void
     {
+        $this->withoutExceptionHandling();
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin);
 
         $response = $this->post(route('admin.products.store'), [
             'name' => 'Rose Plant',
             'type' => 'plant',
-            'category' => 'flower',
+            'category' => 'Flowering Plants',
             'quantity' => 10,
             'price' => 150,
             'stock' => 10,

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
+use App\Models\AuditLog;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 
@@ -25,9 +27,13 @@ class SubscriptionController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        // Sorting
+        // Sorting with whitelist validation
+        $allowedSorts = ['created_at', 'status', 'start_date', 'end_date'];
         $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+        $sortOrder = strtolower($request->input('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
@@ -63,7 +69,8 @@ class SubscriptionController extends Controller
         ]);
 
         $subscription = Subscription::findOrFail($id);
-        $subscription->update(['plan_id' => $validated['plan_id']]);
+        // Use the correct foreign key name `subscription_plan_id`
+        $subscription->update(['subscription_plan_id' => $validated['plan_id']]);
 
         $this->logAudit('Subscription Upgraded', 'subscriptions', $id, null, $validated['plan_id']);
 
@@ -72,7 +79,8 @@ class SubscriptionController extends Controller
 
     public function cancel($id)
     {
-        $subscription = SubscriptionPlan::findOrFail($id);
+        // Cancel a specific subscription (not the plan)
+        $subscription = Subscription::findOrFail($id);
         $subscription->update(['status' => 'cancelled']);
 
         $this->logAudit('Subscription Cancelled', 'subscriptions', $id, null, 'cancelled');
@@ -82,6 +90,15 @@ class SubscriptionController extends Controller
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
-        // Will implement audit logging later
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action_type' => $action,
+            'module' => $module,
+            'record_id' => $recordId,
+            'old_value' => is_array($oldValue) ? json_encode($oldValue) : (string) ($oldValue ?? ''),
+            'new_value' => is_array($newValue) ? json_encode($newValue) : (string) ($newValue ?? ''),
+            'ip_address' => request()->ip(),
+            'device_info' => request()->header('User-Agent'),
+        ]);
     }
 }
