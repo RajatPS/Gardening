@@ -7,44 +7,9 @@ use Illuminate\Support\Facades\Storage;
 
 // TEMPORARY DEBUG ROUTE: remove after storage investigation is complete.
 Route::get('/debug-storage', function () {
-    $result = [
-        'debug' => true,
-        'public_storage_exists' => false,
-        'public_storage_is_symlink' => false,
-        'public_storage_real_path' => null,
-        'storage_app_public_exists' => false,
-        'products_directory_exists' => false,
-        'uploaded_products_sample_files' => [],
-        'storage_disk_can_resolve_products_directory' => false,
-    ];
-
-    try {
-        $publicStoragePath = public_path('storage');
-        $storagePublicPath = storage_path('app/public');
-        $productsDirectory = storage_path('app/public/products');
-
-        $result['public_storage_exists'] = file_exists($publicStoragePath);
-        $result['public_storage_is_symlink'] = is_link($publicStoragePath);
-        $result['public_storage_real_path'] = $result['public_storage_is_symlink'] ? realpath($publicStoragePath) : null;
-        $result['storage_app_public_exists'] = file_exists($storagePublicPath);
-        $result['products_directory_exists'] = file_exists($productsDirectory);
-
-        if (is_dir($productsDirectory)) {
-            $result['uploaded_products_sample_files'] = array_values(array_slice(scandir($productsDirectory) ?: [], 2));
-        }
-
-        $result['storage_disk_can_resolve_products_directory'] = Storage::disk('public')->exists('products');
-
-        return response()->json($result);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'debug' => true,
-            'step' => 'debug-storage-filesystem-check',
-            'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ], 500);
-    }
+    return response()->json([
+        'ok' => true,
+    ]);
 });
 
 // TEMPORARY ROUTES CHECK DIAGNOSTIC: remove after routing investigation is complete.
