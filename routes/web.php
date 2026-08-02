@@ -2,7 +2,39 @@
 
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\SubscriptionPaymentController;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+// TEMPORARY DEBUG ROUTE: remove after storage investigation is complete.
+Route::get('/debug-storage', function () {
+    $publicStoragePath = public_path('storage');
+    $storagePublicPath = storage_path('app/public');
+    $productsDirectory = storage_path('app/public/products');
+    $sampleFiles = [];
+
+    if (is_dir($productsDirectory)) {
+        $sampleFiles = array_values(array_slice(scandir($productsDirectory) ?: [], 2));
+    }
+
+    $publicStorageExists = file_exists($publicStoragePath);
+    $publicStorageIsLink = is_link($publicStoragePath);
+    $publicStorageRealPath = $publicStorageIsLink ? realpath($publicStoragePath) : null;
+    $storagePublicExists = file_exists($storagePublicPath);
+    $productsDirectoryExists = file_exists($productsDirectory);
+    $storageDiskCanResolve = Storage::disk('public')->exists('products');
+
+    return response()->json([
+        'debug' => true,
+        'public_storage_exists' => $publicStorageExists,
+        'public_storage_is_symlink' => $publicStorageIsLink,
+        'public_storage_real_path' => $publicStorageRealPath,
+        'storage_app_public_exists' => $storagePublicExists,
+        'products_directory_exists' => $productsDirectoryExists,
+        'uploaded_products_sample_files' => $sampleFiles,
+        'storage_disk_can_resolve_products_directory' => $storageDiskCanResolve,
+    ]);
+});
 
 Route::controller(PlatformController::class)->group(function (): void {
     Route::get('/', 'home')->name('home');
