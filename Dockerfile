@@ -28,8 +28,10 @@ RUN apt-get update \
 
 COPY . .
 
-RUN composer install --no-interaction --prefer-dist --no-progress \
+RUN chmod -R 775 storage bootstrap/cache \
+    && composer install --no-interaction --prefer-dist --no-progress \
     && npm install --no-audit --no-fund \
+    && php artisan storage:link \
     && php artisan config:clear \
     && php artisan package:discover --ansi \
     && npm run build
