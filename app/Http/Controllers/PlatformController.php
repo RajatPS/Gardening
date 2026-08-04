@@ -14,7 +14,8 @@ class PlatformController extends Controller
     public function home(): View
     {
         $data = $this->sharedData();
-        $visible = $this->getVisibleProducts();
+        // Ensure newest visible products appear first on the homepage
+        $visible = $this->getVisibleProductsQuery()->orderBy('created_at','desc')->get();
         $data['products'] = $visible->take(4)->values()->map(fn (Product $product) => $this->mapProductForView($product))->all();
         $data['hasMoreProducts'] = $visible->count() > 4;
         $data['savedProductNames'] = $this->getSavedProductNames();
@@ -230,18 +231,31 @@ class PlatformController extends Controller
         $category = $product->category ?? 'Plants';
         $name = $product->name ?? 'Product';
         $price = (int) ($product->price ?? 0);
+        $stock = (int) ($product->stock ?? 0);
+        $quantity = (int) ($product->quantity ?? 0);
+        $type = $product->type ?? 'general';
         $slug = Str::slug($name);
         $imagePath = $product->primaryImage?->path ?? $product->images->first()?->path ?? null;
-        $imageUrl = $imagePath ? Storage::disk('public')->url($imagePath) : 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
+        // Use the public disk and ensure the file exists before building a URL
+        if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+            $imageUrl = Storage::url($imagePath);
+        } else {
+            $imageUrl = 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
+        }
         $specifications = is_array($product->specifications) ? $product->specifications : [];
         $careProfile = is_array($product->care_profile) ? $product->care_profile : [];
-
+        $description = (string) ($product->description ?? $specifications['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.');
         $gallery = [];
+
         if ($product->images && $product->images->count() > 0) {
             foreach ($product->images as $image) {
-                $gallery[] = Storage::disk('public')->url($image->path);
+                if (Storage::disk('public')->exists($image->path)) {
+                    $gallery[] = Storage::url($image->path);
+                }
             }
-        } else {
+        }
+
+        if (empty($gallery)) {
             $gallery = [
                 $imageUrl,
                 'https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=900&q=80',
@@ -253,11 +267,15 @@ class PlatformController extends Controller
             'name' => $name,
             'slug' => $slug,
             'category' => $category,
+            'type' => $type,
             'price' => '₹' . number_format($price, 0),
             'price_value' => $price,
+            'stock' => $stock,
+            'quantity' => $quantity,
+            'weight' => $specifications['weight'] ?? null,
             'care' => $careProfile['care'] ?? $careProfile['watering'] ?? 'Easy care',
             'image' => $imageUrl,
-            'description' => $specifications['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.',
+            'description' => $description,
             'details' => $includeDetails ? ($specifications['details'] ?? [
                 'Easy care and beginner-friendly guidance',
                 'High-quality and nursery-ready materials',

@@ -20,10 +20,6 @@
                     <input type="text" name="name" class="form-control" value="{{ old('name', $product->name) }}" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Type</label>
-                    <input type="text" name="type" class="form-control" value="{{ old('type', $product->type) }}" placeholder="plant, tool, fertilizer">
-                </div>
-                <div class="col-md-6">
                     <label class="form-label">Category</label>
                     <select name="category" class="form-select" required>
                         <option value="">Select category</option>
@@ -63,7 +59,7 @@
                             <div class="col-auto position-relative draggable-card" data-id="existing_{{ $image->id }}">
                                 <div class="card shadow-sm border {{ $image->is_primary ? 'border-primary border-2' : '' }}" style="width: 120px; cursor: grab;">
                                     <div class="card-img-top bg-light position-relative drag-handle" style="height: 120px;">
-                                        <img src="{{ Storage::disk('public')->url($image->path) }}" class="w-100 h-100 object-fit-cover rounded-top" alt="Preview">
+                                        <img src="{{ Storage::url($image->path) }}" class="w-100 h-100 object-fit-cover rounded-top" alt="Preview">
                                         <span class="badge bg-primary position-absolute top-0 start-0 m-1 thumbnail-badge" style="{{ $image->is_primary ? 'display: block;' : 'display: none;' }}">Thumbnail</span>
                                         <span class="badge bg-dark position-absolute bottom-0 start-0 m-1 position-badge">Image {{ $index + 1 }}</span>
                                     </div>

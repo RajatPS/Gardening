@@ -29,10 +29,6 @@
                     <input type="text" name="name" class="form-control" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Type</label>
-                    <input type="text" name="type" class="form-control" placeholder="plant, tool, fertilizer">
-                </div>
-                <div class="col-md-6">
                     <label class="form-label">Category</label>
                     <select name="category" class="form-select" required>
                         <option value="">Select category</option>

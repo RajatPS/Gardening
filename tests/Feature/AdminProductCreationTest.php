@@ -47,4 +47,25 @@ class AdminProductCreationTest extends TestCase
         $this->assertNotNull($product);
         $this->assertNotEmpty($product->sku);
     }
+
+    public function test_admin_can_create_product_without_type_field(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin);
+
+        $response = $this->post(route('admin.products.store'), [
+            'name' => 'Kiddo Plant',
+            'category' => 'Accessories',
+            'quantity' => 10,
+            'price' => 23,
+            'stock' => 320,
+            'description' => 'asdasdsada',
+            'is_active' => '1',
+            'is_pet_safe' => '1',
+            'confirm_details' => '1',
+        ]);
+
+        $response->assertRedirect(route('admin.products.index'));
+        $this->assertDatabaseHas('products', ['name' => 'Kiddo Plant']);
+    }
 }

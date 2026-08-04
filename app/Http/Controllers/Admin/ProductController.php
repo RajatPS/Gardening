@@ -76,6 +76,7 @@ class ProductController extends Controller
         ]);
 
         $validated['sku'] = Product::generateUniqueSku($validated['name']);
+        $validated['type'] = $validated['type'] ?? $validated['category'] ?? 'general';
         $validated['is_pet_safe'] = $request->boolean('is_pet_safe');
         $validated['is_active'] = $request->boolean('is_active', true);
 
@@ -152,6 +153,7 @@ class ProductController extends Controller
             'is_pet_safe' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
         ]);
+        $validated['type'] = $validated['type'] ?? $validated['category'] ?? $product->type ?? 'general';
         $validated['is_pet_safe'] = $request->boolean('is_pet_safe');
         $validated['is_active'] = $request->boolean('is_active', true);
 

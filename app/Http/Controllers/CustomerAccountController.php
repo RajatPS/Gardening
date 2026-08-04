@@ -580,11 +580,11 @@ class CustomerAccountController extends Controller
     private function resolveProductImageUrl(Product $product): ?string
     {
         if ($product->primaryImage?->path) {
-            return Storage::disk('public')->url($product->primaryImage->path);
+            return Storage::url($product->primaryImage->path);
         }
 
         if ($product->images->isNotEmpty()) {
-            return Storage::disk('public')->url($product->images->first()->path);
+            return Storage::url($product->images->first()->path);
         }
 
         return null;

@@ -21,6 +21,14 @@
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-800">{{ $product['category'] }}</p>
                     <h1 class="mt-3 text-3xl font-semibold text-slate-950">{{ $product['name'] }}</h1>
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                        <span class="rounded-full bg-slate-100 px-2.5 py-1">Type: {{ $product['type'] ?? 'general' }}</span>
+                        <span class="rounded-full bg-slate-100 px-2.5 py-1">Stock: {{ $product['stock'] ?? 0 }}</span>
+                        <span class="rounded-full bg-slate-100 px-2.5 py-1">Qty: {{ $product['quantity'] ?? 0 }}</span>
+                        @if (!empty($product['weight']))
+                            <span class="rounded-full bg-slate-100 px-2.5 py-1">Weight: {{ $product['weight'] }}</span>
+                        @endif
+                    </div>
                     <p class="mt-4 text-base leading-7 text-slate-600">{{ $product['description'] }}</p>
                 </div>
 
