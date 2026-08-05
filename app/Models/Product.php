@@ -42,6 +42,19 @@ class Product extends Model
                 $product->sku = self::generateUniqueSku($product->name ?? 'product');
             }
         });
+
+        static::deleting(function (self $product): void {
+            $product->load('images');
+
+            foreach ($product->images as $image) {
+                $image->delete();
+            }
+        });
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->primaryImage?->image_url ?? $this->images->first()?->image_url;
     }
 
     public function images()

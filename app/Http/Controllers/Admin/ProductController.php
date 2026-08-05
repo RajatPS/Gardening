@@ -89,9 +89,14 @@ class ProductController extends Controller
             
             if (empty($order)) {
                 foreach ($files as $index => $imageFile) {
-                    $path = $imageFile->store('products', 'public');
+                    $uploadResult = cloudinary()->uploadApi()->upload($imageFile->getRealPath(), [
+                        'folder' => 'products',
+                        'resource_type' => 'image',
+                    ]);
+
                     $product->images()->create([
-                        'path' => $path,
+                        'path' => $uploadResult['secure_url'] ?? $uploadResult['url'] ?? null,
+                        'public_id' => $uploadResult['public_id'] ?? null,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
@@ -101,9 +106,14 @@ class ProductController extends Controller
                     if (str_starts_with($orderRef, 'new_')) {
                         $fileIndex = (int) str_replace('new_', '', $orderRef);
                         if (isset($files[$fileIndex])) {
-                            $path = $files[$fileIndex]->store('products', 'public');
+                            $uploadResult = cloudinary()->uploadApi()->upload($files[$fileIndex]->getRealPath(), [
+                                'folder' => 'products',
+                                'resource_type' => 'image',
+                            ]);
+
                             $product->images()->create([
-                                'path' => $path,
+                                'path' => $uploadResult['secure_url'] ?? $uploadResult['url'] ?? null,
+                                'public_id' => $uploadResult['public_id'] ?? null,
                                 'is_primary' => $index === 0,
                                 'sort_order' => $index,
                             ]);
@@ -166,7 +176,9 @@ class ProductController extends Controller
         if ($request->filled('delete_images')) {
             $imagesToDelete = $product->images()->whereIn('id', $request->input('delete_images'))->get();
             foreach ($imagesToDelete as $image) {
-                Storage::disk('public')->delete($image->path);
+                if (! str_starts_with($image->path, 'http://') && ! str_starts_with($image->path, 'https://')) {
+                    Storage::disk('public')->delete($image->path);
+                }
                 $image->delete();
             }
         }
@@ -178,9 +190,14 @@ class ProductController extends Controller
             if ($request->hasFile('images')) {
                 $maxSortOrder = $product->images()->max('sort_order') ?? -1;
                 foreach ($request->file('images') as $index => $imageFile) {
-                    $path = $imageFile->store('products', 'public');
+                    $uploadResult = cloudinary()->uploadApi()->upload($imageFile->getRealPath(), [
+                        'folder' => 'products',
+                        'resource_type' => 'image',
+                    ]);
+
                     $product->images()->create([
-                        'path' => $path,
+                        'path' => $uploadResult['secure_url'] ?? $uploadResult['url'] ?? null,
+                        'public_id' => $uploadResult['public_id'] ?? null,
                         'is_primary' => false,
                         'sort_order' => $maxSortOrder + $index + 1,
                     ]);
@@ -202,9 +219,14 @@ class ProductController extends Controller
                 } elseif (str_starts_with($orderRef, 'new_')) {
                     $fileIndex = (int) str_replace('new_', '', $orderRef);
                     if (isset($files[$fileIndex])) {
-                        $path = $files[$fileIndex]->store('products', 'public');
+                        $uploadResult = cloudinary()->uploadApi()->upload($files[$fileIndex]->getRealPath(), [
+                            'folder' => 'products',
+                            'resource_type' => 'image',
+                        ]);
+
                         $product->images()->create([
-                            'path' => $path,
+                            'path' => $uploadResult['secure_url'] ?? $uploadResult['url'] ?? null,
+                            'public_id' => $uploadResult['public_id'] ?? null,
                             'is_primary' => $index === 0,
                             'sort_order' => $index,
                         ]);

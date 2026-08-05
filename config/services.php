@@ -60,4 +60,11 @@ return [
         'from' => env('TWILIO_FROM'),
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME', env('CLOUDINARY_NAME', env('cloudinary_NAME'))),
+        'api_key' => env('CLOUDINARY_API_KEY', env('cloudinary_API_KEY')),
+        'api_secret' => env('CLOUDINARY_API_SECRET', env('cloudinary_API_SECRET')),
+        'url' => env('CLOUDINARY_URL'),
+    ],
+
 ];

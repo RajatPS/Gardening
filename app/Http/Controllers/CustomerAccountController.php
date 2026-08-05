@@ -579,15 +579,7 @@ class CustomerAccountController extends Controller
 
     private function resolveProductImageUrl(Product $product): ?string
     {
-        if ($product->primaryImage?->path) {
-            return Storage::url($product->primaryImage->path);
-        }
-
-        if ($product->images->isNotEmpty()) {
-            return Storage::url($product->images->first()->path);
-        }
-
-        return null;
+        return $product->image_url;
     }
 
     private function completeCartOrderDirectly($items, array $summary, Request $request)

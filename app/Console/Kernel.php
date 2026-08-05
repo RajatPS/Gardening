@@ -4,12 +4,14 @@ namespace App\Console;
 
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Console\Scheduling\Schedule;
+use App\Console\Commands\CloudinaryMigrateProductImages;
 use App\Console\Commands\SendDueReminders;
 
 class Kernel extends ConsoleKernel
 {
     protected $commands = [
         SendDueReminders::class,
+        CloudinaryMigrateProductImages::class,
     ];
 
     protected function schedule(Schedule $schedule)

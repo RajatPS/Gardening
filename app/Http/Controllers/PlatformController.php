@@ -235,13 +235,7 @@ class PlatformController extends Controller
         $quantity = (int) ($product->quantity ?? 0);
         $type = $product->type ?? 'general';
         $slug = Str::slug($name);
-        $imagePath = $product->primaryImage?->path ?? $product->images->first()?->path ?? null;
-        // Use the public disk and ensure the file exists before building a URL
-        if ($imagePath && Storage::disk('public')->exists($imagePath)) {
-            $imageUrl = Storage::url($imagePath);
-        } else {
-            $imageUrl = 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
-        }
+        $imageUrl = $product->image_url ?? 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';
         $specifications = is_array($product->specifications) ? $product->specifications : [];
         $careProfile = is_array($product->care_profile) ? $product->care_profile : [];
         $description = (string) ($product->description ?? $specifications['description'] ?? 'A carefully selected plant or gardening essential designed to make your space feel fresh and lived in.');
@@ -249,8 +243,8 @@ class PlatformController extends Controller
 
         if ($product->images && $product->images->count() > 0) {
             foreach ($product->images as $image) {
-                if (Storage::disk('public')->exists($image->path)) {
-                    $gallery[] = Storage::url($image->path);
+                if ($image->image_url) {
+                    $gallery[] = $image->image_url;
                 }
             }
         }
