@@ -677,13 +677,13 @@ class CustomerAccountController extends Controller
 
     private function paymentGatewayEnabled(): bool
     {
-        return ! empty(env('RAZORPAY_KEY_ID')) && ! empty(env('RAZORPAY_KEY_SECRET')) && str_contains(strtolower((string) env('PAYMENT_GATEWAY', 'razorpay')), 'razorpay');
+        return ! empty(config('services.razorpay.key_id')) && ! empty(config('services.razorpay.key_secret')) && str_contains(strtolower((string) config('services.razorpay.gateway', 'razorpay')), 'razorpay');
     }
 
     private function createRazorpayOrder(int $amountInPaise, string $currency, string $label, string $paymentMethod): array
     {
-        $keyId = env('RAZORPAY_KEY_ID');
-        $secret = env('RAZORPAY_KEY_SECRET');
+        $keyId = config('services.razorpay.key_id');
+        $secret = config('services.razorpay.key_secret');
 
         if (empty($keyId) || empty($secret)) {
             return ['success' => false, 'message' => 'Razorpay credentials are not configured.'];
@@ -692,10 +692,11 @@ class CustomerAccountController extends Controller
         $response = Http::withBasicAuth($keyId, $secret)
             ->asForm()
             ->post('https://api.razorpay.com/v1/orders', [
-                'amount'   => $amountInPaise,
-                'currency' => $currency,
-                'receipt'  => 'cart-' . Str::slug($label) . '-' . time(),
-                'notes'    => [
+                'amount'          => $amountInPaise,
+                'currency'        => $currency,
+                'receipt'         => 'cart-' . Str::slug($label) . '-' . time(),
+                'payment_capture' => 1,
+                'notes'           => [
                     'type'           => 'cart_checkout',
                     'payment_method' => $paymentMethod,
                     'user_id'        => auth()->id(),
@@ -727,7 +728,7 @@ class CustomerAccountController extends Controller
 
     private function buildSignature(string $orderId, string $paymentId, string $signature): array
     {
-        $secret = env('RAZORPAY_KEY_SECRET');
+        $secret = config('services.razorpay.key_secret');
 
         if (empty($secret)) {
             return ['valid' => false];

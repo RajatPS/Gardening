@@ -47,27 +47,34 @@
                 </section>
             @endif
 
-            <div class="mt-10 grid gap-6 lg:grid-cols-3">
-                @foreach ($plans as $plan)
-                    <article class="rounded-lg border {{ $plan['name'] === 'Standard' ? 'border-emerald-800 bg-emerald-950 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-950 shadow-sm' }} p-6">
-                        <p class="text-sm font-semibold {{ $plan['name'] === 'Standard' ? 'text-emerald-100' : 'text-emerald-800' }}">{{ $plan['cadence'] }}</p>
-                        <h2 class="mt-3 text-2xl font-semibold">{{ $plan['name'] }}</h2>
-                        <p class="mt-2 text-4xl font-semibold">{{ $plan['price'] }}<span class="text-sm font-medium opacity-70">/mo</span></p>
-                        <ul class="mt-6 space-y-3 text-sm">
-                            @foreach ($plan['features'] as $feature)
-                                <li class="flex gap-2"><span class="font-semibold">&check;</span>{{ $feature }}</li>
-                            @endforeach
-                        </ul>
-                        <form action="{{ route('subscriptions.checkout') }}" method="POST" class="mt-7">
-                            @csrf
-                            <input type="hidden" name="plan" value="{{ strtolower($plan['name']) }}">
-                            <button type="submit" class="w-full rounded-md {{ $plan['name'] === 'Standard' ? 'bg-white text-emerald-950' : 'bg-emerald-900 text-white' }} px-4 py-2 text-sm font-semibold transition hover:opacity-90">
-                                Choose Plan
-                            </button>
-                        </form>
-                    </article>
-                @endforeach
-            </div>
+            @if (! empty($currentSubscription) && $plans->isEmpty())
+                <div class="mt-10 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                    <p class="text-lg font-semibold text-slate-950">You are already on the highest available plan.</p>
+                    <p class="mt-2 text-sm text-slate-600">There are no upgrade options available right now.</p>
+                </div>
+            @else
+                <div class="mt-10 grid gap-6 lg:grid-cols-3">
+                    @foreach ($plans as $plan)
+                        <article class="rounded-lg border {{ $plan['name'] === 'Standard' ? 'border-emerald-800 bg-emerald-950 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-950 shadow-sm' }} p-6">
+                            <p class="text-sm font-semibold {{ $plan['name'] === 'Standard' ? 'text-emerald-100' : 'text-emerald-800' }}">{{ $plan['cadence'] }}</p>
+                            <h2 class="mt-3 text-2xl font-semibold">{{ $plan['name'] }}</h2>
+                            <p class="mt-2 text-4xl font-semibold">{{ $plan['price'] }}<span class="text-sm font-medium opacity-70">/mo</span></p>
+                            <ul class="mt-6 space-y-3 text-sm">
+                                @foreach ($plan['features'] as $feature)
+                                    <li class="flex gap-2"><span class="font-semibold">&check;</span>{{ $feature }}</li>
+                                @endforeach
+                            </ul>
+                            <form action="{{ route('subscriptions.checkout') }}" method="POST" class="mt-7">
+                                @csrf
+                                <input type="hidden" name="plan" value="{{ strtolower($plan['name']) }}">
+                                <button type="submit" class="w-full rounded-md {{ $plan['name'] === 'Standard' ? 'bg-white text-emerald-950' : 'bg-emerald-900 text-white' }} px-4 py-2 text-sm font-semibold transition hover:opacity-90">
+                                    Choose Plan
+                                </button>
+                            </form>
+                        </article>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </section>
 @endsection

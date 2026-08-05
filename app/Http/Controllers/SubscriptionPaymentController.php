@@ -84,11 +84,25 @@ class SubscriptionPaymentController extends Controller
             $order = $this->createRazorpayOrder($amountToPay, $currency, $planName, $paymentMethod);
 
             if ($order['success']) {
-                $subscription = $this->createSubscriptionRecord($planName, $planData['amount'], 'pending', $paymentMethod, [
-                    'gateway' => 'razorpay',
-                    'order_id' => $order['data']['id'],
-                    'upgrade_from' => $currentSubscription?->plan_name,
-                ]);
+                $pendingSubscription = Subscription::where('user_id', auth()->id())
+                    ->where('plan_name', $planName)
+                    ->where('status', 'pending')
+                    ->latest('created_at')
+                    ->first();
+
+                if ($pendingSubscription) {
+                    $pendingSubscription->update([
+                        'amount' => $planData['amount'],
+                        'payment_gateway' => 'razorpay',
+                    ]);
+                    $subscription = $pendingSubscription;
+                } else {
+                    $subscription = $this->createSubscriptionRecord($planName, $planData['amount'], 'pending', $paymentMethod, [
+                        'gateway' => 'razorpay',
+                        'order_id' => $order['data']['id'],
+                        'upgrade_from' => $currentSubscription?->plan_name,
+                    ]);
+                }
 
                 $transaction = $this->createTransactionRecord($subscription, $order['data']['id'], $amountToPay, $paymentMethod, 'pending', [
                     'gateway' => 'razorpay',
@@ -110,7 +124,7 @@ class SubscriptionPaymentController extends Controller
             }
         }
 
-        return $this->completeSubscription($planName, $planData['amount'], 'cash', 'completed', [
+        return $this->completeSubscription($planName, $planData['amount'], $amountToPay, 'cash', 'completed', [
             'gateway' => 'mock',
             'message' => 'Payment completed using the local fallback flow.',
             'upgrade_from' => $currentSubscription?->plan_name,
@@ -155,6 +169,14 @@ class SubscriptionPaymentController extends Controller
             ]);
 
             if ($transaction->subscription_id) {
+                Subscription::active()
+                    ->where('user_id', auth()->id())
+                    ->where('id', '!=', $transaction->subscription_id)
+                    ->update([
+                        'status' => 'expired',
+                        'end_date' => Carbon::now(),
+                    ]);
+
                 Subscription::find($transaction->subscription_id)?->update([
                     'status' => 'active',
                     'start_date' => Carbon::now(),
@@ -183,8 +205,8 @@ class SubscriptionPaymentController extends Controller
 
     private function createRazorpayOrder(int $amount, string $currency, string $planName, string $paymentMethod): array
     {
-        $keyId = env('RAZORPAY_KEY_ID');
-        $secret = env('RAZORPAY_KEY_SECRET');
+        $keyId = config('services.razorpay.key_id');
+        $secret = config('services.razorpay.key_secret');
 
         if (empty($keyId) || empty($secret)) {
             return ['success' => false, 'message' => 'Razorpay credentials are not configured.'];
@@ -193,9 +215,10 @@ class SubscriptionPaymentController extends Controller
         $response = Http::withBasicAuth($keyId, $secret)
             ->asForm()
             ->post('https://api.razorpay.com/v1/orders', [
-                'amount' => $amount * 100,
-                'currency' => $currency,
-                'receipt' => 'plan-' . Str::slug($planName) . '-' . time(),
+                'amount'          => $amount * 100,
+                'currency'        => $currency,
+                'receipt'         => 'plan-' . Str::slug($planName) . '-' . time(),
+                'payment_capture' => 1,
                 'notes' => [
                     'plan' => $planName,
                     'payment_method' => $paymentMethod,
@@ -210,10 +233,10 @@ class SubscriptionPaymentController extends Controller
         return ['success' => false, 'message' => $response->body()];
     }
 
-    private function completeSubscription(string $planName, int $amount, string $paymentMethod, string $status, array $gatewayResponse)
+    private function completeSubscription(string $planName, int $subscriptionAmount, int $paymentAmount, string $paymentMethod, string $status, array $gatewayResponse)
     {
-        $subscription = $this->createSubscriptionRecord($planName, $amount, $status, $paymentMethod, $gatewayResponse);
-        $this->createTransactionRecord($subscription, 'local-' . Str::uuid()->toString(), $amount, $paymentMethod, $status, $gatewayResponse, $gatewayResponse['message'] ?? null);
+        $subscription = $this->createSubscriptionRecord($planName, $subscriptionAmount, $status, $paymentMethod, $gatewayResponse);
+        $this->createTransactionRecord($subscription, 'local-' . Str::uuid()->toString(), $paymentAmount, $paymentMethod, $status, $gatewayResponse, $gatewayResponse['message'] ?? null);
 
         return redirect()->route('subscriptions')->with('success', 'Your plan has been activated successfully.');
     }
@@ -298,7 +321,7 @@ class SubscriptionPaymentController extends Controller
 
     private function buildSignature(string $orderId, string $paymentId, string $signature): array
     {
-        $secret = env('RAZORPAY_KEY_SECRET');
+        $secret = config('services.razorpay.key_secret');
 
         if (empty($secret)) {
             return ['valid' => false];
@@ -312,6 +335,7 @@ class SubscriptionPaymentController extends Controller
 
     private function paymentGatewayEnabled(): bool
     {
-        return ! empty(env('RAZORPAY_KEY_ID')) && ! empty(env('RAZORPAY_KEY_SECRET')) && str_contains(strtolower((string) env('PAYMENT_GATEWAY', 'razorpay')), 'razorpay');
+        return ! empty(config('services.razorpay.key_id')) && ! empty(config('services.razorpay.key_secret')) && str_contains(strtolower((string) config('services.razorpay.gateway', 'razorpay')), 'razorpay');
     }
 }
+

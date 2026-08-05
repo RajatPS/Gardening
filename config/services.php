@@ -67,4 +67,10 @@ return [
         'url' => env('CLOUDINARY_URL'),
     ],
 
+    'razorpay' => [
+        'gateway' => env('PAYMENT_GATEWAY', 'razorpay'),
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+    ],
+
 ];

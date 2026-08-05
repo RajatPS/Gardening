@@ -54,7 +54,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="mt-6 w-full rounded-md bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">
+                        <button type="{{ ! empty($order) ? 'button' : 'submit' }}" id="pay-now-button" class="mt-6 w-full rounded-md bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800" data-has-order="{{ ! empty($order) ? 'true' : 'false' }}">
                             Pay Now
                         </button>
 
@@ -71,12 +71,20 @@
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                const payButton = document.getElementById('pay-now-button');
+                if (!payButton || payButton.dataset.hasOrder !== 'true') {
+                    return;
+                }
+
                 const options = {
-                    key: '{{ env('RAZORPAY_KEY_ID') }}',
-                    amount: '{{ $order['amount'] }}',
+                    key: '{{ config('services.razorpay.key_id') }}',
+                    amount: {{ $order['amount'] }},
                     currency: '{{ $currency }}',
                     name: 'Gardening',
                     description: 'Subscription plan: {{ $plan }}',
+                    @if (! empty($paymentMethod) && $paymentMethod !== 'cash')
+                        method: '{{ $paymentMethod === 'qr' ? 'upi' : $paymentMethod }}',
+                    @endif
                     order_id: '{{ $order['id'] }}',
                     handler: function (response) {
                         const form = document.createElement('form');
@@ -131,7 +139,11 @@
                 };
 
                 const rzp = new Razorpay(options);
-                rzp.open();
+
+                payButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    rzp.open();
+                });
             });
         </script>
     @endif
