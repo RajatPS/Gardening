@@ -8,6 +8,169 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-stone-50 text-slate-900 antialiased">
+    <script>
+        window.gardeningAuthenticated = @json(auth()->check());
+        window.gardeningGuestSavedKey = 'gardening_guest_saved_products';
+        window.gardeningSavedProductsSyncUrl = "{{ route('customer.saved-products.sync') }}";
+
+        window.gardeningGuestSavedProducts = {
+            get() {
+                try {
+                    const raw = localStorage.getItem(window.gardeningGuestSavedKey);
+                    if (!raw) {
+                        return [];
+                    }
+                    const items = JSON.parse(raw);
+                    return Array.isArray(items) ? items : [];
+                } catch (error) {
+                    return [];
+                }
+            },
+            set(items) {
+                try {
+                    localStorage.setItem(window.gardeningGuestSavedKey, JSON.stringify(Array.isArray(items) ? items : []));
+                } catch (error) {
+                    // Ignore localStorage errors.
+                }
+            },
+            add(item) {
+                if (!item || !item.product_id) {
+                    return;
+                }
+                const normalizedId = String(item.product_id);
+                const items = this.get();
+                if (items.some(existing => String(existing.product_id) === normalizedId)) {
+                    return;
+                }
+                items.push({
+                    product_id: normalizedId,
+                    product_name: item.product_name || '',
+                    product_category: item.product_category || '',
+                    price: item.price ?? '0',
+                    image_url: item.image_url || '',
+                });
+                this.set(items);
+            },
+            remove(productId) {
+                if (!productId) {
+                    return;
+                }
+                const normalizedId = String(productId);
+                const items = this.get().filter(existing => String(existing.product_id) !== normalizedId);
+                this.set(items);
+            },
+            has(productId) {
+                if (!productId) {
+                    return false;
+                }
+                const normalizedId = String(productId);
+                return this.get().some(existing => String(existing.product_id) === normalizedId);
+            },
+            clear() {
+                try {
+                    localStorage.removeItem(window.gardeningGuestSavedKey);
+                } catch (error) {
+                    // Ignore localStorage errors.
+                }
+            },
+        };
+
+        window.gardeningApplySaveButtonState = function (btn, saved) {
+            if (!btn) {
+                return;
+            }
+
+            btn.dataset.saved = saved ? 'true' : 'false';
+            btn.title = saved ? 'Remove from saved' : 'Save to wishlist';
+            btn.setAttribute('aria-label', saved ? 'Remove from saved' : 'Save to wishlist');
+
+            const outline = btn.querySelector('.save-icon-outline');
+            const filled = btn.querySelector('.save-icon-filled');
+            if (outline) {
+                outline.classList.toggle('hidden', saved);
+            }
+            if (filled) {
+                filled.classList.toggle('hidden', !saved);
+            }
+
+            btn.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-700');
+
+            if (saved) {
+                btn.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-700');
+            } else {
+                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600', 'hover:border-emerald-200', 'hover:text-emerald-700', 'border-slate-300', 'text-slate-800', 'hover:border-emerald-500', 'hover:text-emerald-700');
+            }
+
+            const label = btn.querySelector('.save-label');
+            if (label) {
+                label.textContent = saved ? 'Saved' : 'Save';
+            }
+        };
+
+        window.gardeningHandleGuestSaveClick = function (btn) {
+            const productId = btn.dataset.productId;
+            if (!productId) {
+                return;
+            }
+
+            const saved = btn.dataset.saved === 'true';
+            if (saved) {
+                window.gardeningGuestSavedProducts.remove(productId);
+                window.gardeningApplySaveButtonState(btn, false);
+                return;
+            }
+
+            window.gardeningGuestSavedProducts.add({
+                product_id: productId,
+                product_name: btn.dataset.productName || '',
+                product_category: btn.dataset.productCategory || '',
+                price: btn.dataset.price || '0',
+                image_url: btn.dataset.imageUrl || '',
+            });
+            window.gardeningApplySaveButtonState(btn, true);
+        };
+
+        window.gardeningSyncGuestSavedProducts = function () {
+            if (!window.gardeningAuthenticated) {
+                return;
+            }
+
+            const products = window.gardeningGuestSavedProducts.get();
+            if (!products.length) {
+                return;
+            }
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            fetch(window.gardeningSavedProductsSyncUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                },
+                body: JSON.stringify({ products }),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        throw new Error('Sync failed');
+                    }
+                    return res.json();
+                })
+                .then(function () {
+                    window.gardeningGuestSavedProducts.clear();
+                })
+                .catch(function () {
+                    // Keep local guest wishlist for a later sync attempt.
+                });
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.gardeningAuthenticated) {
+                window.gardeningSyncGuestSavedProducts();
+            }
+        });
+    </script>
     <div class="min-h-screen">
         @php
             $hideNavbar = request()->routeIs(['customer.login', 'customer.register', 'customer.google.redirect']);

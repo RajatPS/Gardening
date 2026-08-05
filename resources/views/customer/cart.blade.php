@@ -70,7 +70,7 @@
                                         type="button"
                                         class="save-btn inline-flex h-10 w-10 items-center justify-center rounded-full border transition {{ $itemIsSaved ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700' }}"
                                         data-saved="{{ $itemIsSaved ? 'true' : 'false' }}"
-                                        data-product-id="{{ $itemProductId ?? '' }}"
+                                        data-product-id="{{ $item->product_id ?? $itemProductId ?? '' }}"
                                         data-product-name="{{ $item->product_name }}"
                                         data-product-category="{{ $item->product_category ?? '' }}"
                                         data-price="{{ (float) $item->price }}"
@@ -394,11 +394,35 @@
             });
         });
 
+        function applySavedState(btn, saved) {
+            btn.dataset.saved = saved ? 'true' : 'false';
+            btn.title = saved ? 'Remove from saved' : 'Save to wishlist';
+            btn.setAttribute('aria-label', saved ? 'Remove from saved' : 'Save to wishlist');
+
+            const outline = btn.querySelector('.save-icon-outline');
+            const filled = btn.querySelector('.save-icon-filled');
+            if (outline) outline.classList.toggle('hidden', saved);
+            if (filled) filled.classList.toggle('hidden', !saved);
+        }
+
+        if (!window.gardeningAuthenticated) {
+            document.querySelectorAll('.save-btn').forEach(function (btn) {
+                const savedState = window.gardeningGuestSavedProducts.has(btn.dataset.productId);
+                applySavedState(btn, savedState);
+            });
+        }
+
         document.addEventListener('click', function (event) {
             const btn = event.target.closest('.save-btn');
             if (!btn) return;
             if (btn.disabled) return;
             btn.disabled = true;
+
+            if (!window.gardeningAuthenticated) {
+                window.gardeningHandleGuestSaveClick(btn);
+                btn.disabled = false;
+                return;
+            }
 
             const isSaved = btn.dataset.saved === 'true';
             const formData = new FormData();
@@ -415,10 +439,7 @@
                     throw new Error('Request failed');
                 })
                 .then(function (data) {
-                    btn.dataset.saved = data.saved ? 'true' : 'false';
-                    btn.title = data.saved ? 'Remove from saved' : 'Save to wishlist';
-                    btn.querySelector('.save-icon-outline').classList.toggle('hidden', data.saved);
-                    btn.querySelector('.save-icon-filled').classList.toggle('hidden', !data.saved);
+                    applySavedState(btn, data.saved);
                 })
                 .catch(function () {
                     btn.dataset.saved = isSaved ? 'true' : 'false';

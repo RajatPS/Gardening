@@ -102,10 +102,23 @@
                     btn.classList.add('border-slate-300', 'text-slate-800');
                 }
 
-                btn.querySelector('.save-icon-outline').classList.toggle('hidden', saved);
-                btn.querySelector('.save-icon-filled').classList.toggle('hidden', !saved);
-                btn.querySelector('.save-label').textContent = saved ? 'Saved' : 'Save';
+                const outline = btn.querySelector('.save-icon-outline');
+                const filled = btn.querySelector('.save-icon-filled');
+                if (outline) outline.classList.toggle('hidden', saved);
+                if (filled) filled.classList.toggle('hidden', !saved);
+
+                const label = btn.querySelector('.save-label');
+                if (label) {
+                    label.textContent = saved ? 'Saved' : 'Save';
+                }
             }
+
+            document.querySelectorAll('.save-btn').forEach(function (btn) {
+                if (!window.gardeningAuthenticated) {
+                    const savedState = window.gardeningGuestSavedProducts.has(btn.dataset.productId);
+                    applySavedState(btn, savedState);
+                }
+            });
 
             document.addEventListener('click', function (e) {
                 const btn = e.target.closest('.save-btn');
@@ -113,6 +126,12 @@
 
                 if (btn.disabled) return;
                 btn.disabled = true;
+
+                if (!window.gardeningAuthenticated) {
+                    window.gardeningHandleGuestSaveClick(btn);
+                    btn.disabled = false;
+                    return;
+                }
 
                 const isSaved = btn.dataset.saved === 'true';
                 const formData = new FormData();

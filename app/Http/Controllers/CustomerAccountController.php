@@ -409,6 +409,53 @@ class CustomerAccountController extends Controller
         ]);
     }
 
+    public function syncSavedProducts(Request $request)
+    {
+        $validated = $request->validate([
+            'products' => 'required|array',
+            'products.*.product_id' => 'required|integer|exists:products,id',
+            'products.*.product_name' => 'required|string',
+            'products.*.product_category' => 'nullable|string',
+            'products.*.price' => 'nullable|numeric',
+            'products.*.image_url' => 'nullable|string',
+        ]);
+
+        $scope = $this->scopeAttributes();
+        $productIds = collect($validated['products'])->pluck('product_id')->filter()->unique()->values();
+        $existingIds = SavedProduct::where('user_id', $scope['user_id'])
+            ->whereIn('product_id', $productIds->all())
+            ->pluck('product_id')
+            ->all();
+
+        $created = 0;
+        foreach ($validated['products'] as $productData) {
+            if (in_array($productData['product_id'], $existingIds, true)) {
+                continue;
+            }
+
+            SavedProduct::firstOrCreate(
+                [
+                    'user_id'    => $scope['user_id'],
+                    'product_id' => $productData['product_id'],
+                ],
+                [
+                    'product_name'     => $productData['product_name'],
+                    'product_category' => $productData['product_category'] ?? null,
+                    'price'            => (float) ($productData['price'] ?? 0),
+                    'image_url'        => $productData['image_url'] ?? null,
+                    'metadata'         => ['saved_from' => 'guest_sync'],
+                ]
+            );
+
+            $created++;
+        }
+
+        return response()->json([
+            'synced' => true,
+            'created' => $created,
+        ]);
+    }
+
     public function removeSavedProduct(SavedProduct $savedProduct)
     {
         $this->authorizeSavedProduct($savedProduct);
