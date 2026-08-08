@@ -96,6 +96,20 @@ class InventoryController extends Controller
         return redirect()->back()->with('success', 'Inventory adjusted successfully');
     }
 
+    public function destroy($id)
+    {
+        $product = Product::findOrFail($id);
+
+        try {
+            $product->delete();
+            $this->logAudit('Inventory Deleted', 'products', $product->id, $product->toArray(), null);
+
+            return redirect()->route('admin.inventory.index')->with('success', 'Inventory item deleted successfully');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to delete this inventory item because it is still referenced by product records.');
+        }
+    }
+
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
         AuditLog::create([

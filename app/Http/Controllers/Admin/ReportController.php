@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\RevenueService;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct(private readonly RevenueService $revenueService)
+    {
+    }
     public function revenue()
     {
         $data = $this->getRevenueReportData();
@@ -46,12 +50,17 @@ class ReportController extends Controller
 
     private function getRevenueReportData()
     {
-        return DB::table('transactions')
-            ->where('status', 'completed')
-            ->selectRaw('DATE(created_at) as date, SUM(amount) as total')
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->paginate(30);
+        $dailyRevenue = [];
+
+        foreach (range(29, 0) as $dayOffset) {
+            $date = Carbon::today()->subDays($dayOffset);
+            $dailyRevenue[] = [
+                'date' => $date->toDateString(),
+                'total' => $this->revenueService->getRevenueForDate($date),
+            ];
+        }
+
+        return collect($dailyRevenue)->paginate(30);
     }
 
     private function getSalesReportData()

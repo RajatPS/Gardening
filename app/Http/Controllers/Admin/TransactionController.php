@@ -69,4 +69,21 @@ class TransactionController extends Controller
 
         return view('admin.transaction-management', compact('transaction', 'user', 'order'));
     }
+
+    public function destroy($id)
+    {
+        $transaction = DB::table('transactions')->where('id', $id)->first();
+
+        if (! $transaction) {
+            return redirect()->route('admin.transactions.index')->with('error', 'Transaction not found.');
+        }
+
+        try {
+            DB::table('transactions')->where('id', $id)->delete();
+
+            return redirect()->route('admin.transactions.index')->with('success', 'Transaction deleted successfully');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to delete this transaction.');
+        }
+    }
 }

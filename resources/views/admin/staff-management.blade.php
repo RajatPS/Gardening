@@ -102,6 +102,16 @@
                                             </button>
                                         </form>
                                     @endif
+                                    <form method="POST" action="{{ route('admin.staff.destroy', $member) }}" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                            data-confirm="Delete this staff member permanently?"
+                                            data-confirm-title="Delete staff"
+                                            data-confirm-button-text="Delete">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

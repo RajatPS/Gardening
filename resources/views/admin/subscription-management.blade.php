@@ -58,7 +58,7 @@
                             <td>{{ $subscription->plan_name ?? 'Premium Plan' }}</td>
                             <td>{{ optional($subscription->start_date)->format('M d, Y') ?? 'N/A' }}</td>
                             <td>{{ optional($subscription->end_date)->format('M d, Y') ?? 'N/A' }}</td>
-                            <td>${{ number_format($subscription->amount, 2) }}</td>
+                            <td>₹{{ number_format($subscription->amount, 2) }}</td>
                             <td>
                                 @if($subscription->status === 'active')
                                     <span class="badge bg-success">Active</span>
@@ -81,6 +81,13 @@
                                             </button>
                                         </form>
                                     @endif
+                                            <form method="POST" action="{{ route('admin.subscriptions.destroy', $subscription) }}" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this subscription?" data-confirm-title="Delete subscription" data-confirm-button-text="Delete">
+                                                    <i class="fas fa-trash-can"></i>
+                                                </button>
+                                            </form>
                                 </div>
                             </td>
                         </tr>

@@ -88,6 +88,20 @@ class SubscriptionController extends Controller
         return redirect()->back()->with('success', 'Subscription cancelled successfully');
     }
 
+    public function destroy($id)
+    {
+        $subscription = Subscription::findOrFail($id);
+
+        try {
+            $subscription->delete();
+            $this->logAudit('Subscription Deleted', 'subscriptions', $subscription->id, $subscription->toArray(), null);
+
+            return redirect()->route('admin.subscriptions.index')->with('success', 'Subscription deleted successfully');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to delete this subscription because related records still depend on it.');
+        }
+    }
+
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
         AuditLog::create([

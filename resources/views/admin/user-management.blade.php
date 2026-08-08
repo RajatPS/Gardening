@@ -97,21 +97,32 @@
                                     @if($user->status === 'active')
                                         <form method="POST" action="{{ route('admin.users.deactivate', $user) }}" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                            <button type="submit" class="btn btn-outline-danger" 
+                                                title="Deactivate User"
                                                 data-confirm="Deactivate this user?"
                                                 data-confirm-title="Deactivate user"
                                                 data-confirm-button-text="Deactivate">
-                                                <i class="fas fa-ban"></i>
+                                                <i class="fas fa-power-off me-1"></i> Deactivate
                                             </button>
                                         </form>
                                     @else
                                         <form method="POST" action="{{ route('admin.users.activate', $user) }}" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-outline-success btn-sm">
-                                                <i class="fas fa-check"></i>
+                                            <button type="submit" class="btn btn-outline-success" title="Activate User">
+                                                <i class="fas fa-power-off me-1"></i> Activate
                                             </button>
                                         </form>
                                     @endif
+                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                            data-confirm="Delete this user permanently?"
+                                            data-confirm-title="Delete user"
+                                            data-confirm-button-text="Delete">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

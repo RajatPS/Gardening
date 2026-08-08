@@ -64,19 +64,19 @@
         <table style="width:360px; border-collapse:collapse;">
             <tr>
                 <td>Subtotal</td>
-                <td style="text-align:right">{{ number_format($summary['subtotal'], 2) }}</td>
+                <td style="text-align:right">₹{{ number_format($summary['subtotal'], 2) }}</td>
             </tr>
             <tr>
                 <td>GST (18%)</td>
-                <td style="text-align:right">{{ number_format($summary['gst'], 2) }}</td>
+                <td style="text-align:right">₹{{ number_format($summary['gst'], 2) }}</td>
             </tr>
             <tr>
                 <td>Delivery Charge</td>
-                <td style="text-align:right">{{ number_format($summary['delivery'], 2) }}</td>
+                <td style="text-align:right">₹{{ number_format($summary['delivery'], 2) }}</td>
             </tr>
             <tr style="font-weight:bold; border-top:1px solid #ddd">
                 <td>Total</td>
-                <td style="text-align:right">{{ number_format($summary['grand_total'], 2) }}</td>
+                <td style="text-align:right">₹{{ number_format($summary['grand_total'], 2) }}</td>
             </tr>
         </table>
     </div>

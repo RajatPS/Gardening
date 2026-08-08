@@ -7,7 +7,14 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <x-section-heading eyebrow="Service Booking" title="Book expert gardening services" description="Service workflows for setup, maintenance, health inspection, pest control, soil replacement, and emergency plant care." />
 
-            <div class="mt-10">
+            <div class="mt-6">
+                @if (session('success'))
+                    <div class="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                        {{ session('success') }}
+                    </div>
+                @endif
+            </div>
+            <div class="mt-4">
                 <form id="serviceForm" action="{{ route('services.book') }}" method="POST" enctype="multipart/form-data" class="rounded-lg border border-slate-200 bg-stone-50 p-6">
                     @csrf
                     <div class="grid gap-4 sm:grid-cols-2">

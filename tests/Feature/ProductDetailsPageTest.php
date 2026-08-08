@@ -20,7 +20,6 @@ class ProductDetailsPageTest extends TestCase
             'category' => 'Accessories',
             'sku' => 'KID-TEST-1',
             'price' => 23,
-            'quantity' => 10,
             'stock' => 320,
             'description' => 'Full product description from DB',
             'is_active' => true,

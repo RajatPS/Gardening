@@ -13,7 +13,6 @@ class Product extends Model
         'category',
         'sku',
         'price',
-        'quantity',
         'stock',
         'description',
         'specifications',
@@ -30,7 +29,6 @@ class Product extends Model
             'is_pet_safe' => 'boolean',
             'is_active' => 'boolean',
             'price' => 'integer',
-            'quantity' => 'integer',
             'stock' => 'integer',
         ];
     }

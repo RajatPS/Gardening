@@ -67,6 +67,8 @@ Route::prefix('admin')->group(function () {
             Route::get('/{id}', [ProductController::class, 'show'])->name('admin.products.show');
             Route::get('/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
             Route::put('/{id}', [ProductController::class, 'update'])->name('admin.products.update');
+            Route::post('/{id}/activate', [ProductController::class, 'activate'])->name('admin.products.activate');
+            Route::post('/{id}/deactivate', [ProductController::class, 'deactivate'])->name('admin.products.deactivate');
             Route::delete('/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
         });
 
@@ -88,6 +90,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('admin.appointments.reschedule');
             Route::post('/{id}/complete', [AppointmentController::class, 'complete'])->name('admin.appointments.complete');
             Route::post('/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
+            Route::delete('/{id}', [AppointmentController::class, 'destroy'])->name('admin.appointments.destroy');
         });
 
         // Subscription Management
@@ -97,12 +100,14 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/renew', [SubscriptionController::class, 'renew'])->name('admin.subscriptions.renew');
             Route::post('/{id}/upgrade', [SubscriptionController::class, 'upgrade'])->name('admin.subscriptions.upgrade');
             Route::post('/{id}/cancel', [SubscriptionController::class, 'cancel'])->name('admin.subscriptions.cancel');
+            Route::delete('/{id}', [SubscriptionController::class, 'destroy'])->name('admin.subscriptions.destroy');
         });
 
         // Transaction Management
         Route::prefix('transactions')->group(function () {
             Route::get('/', [TransactionController::class, 'index'])->name('admin.transactions.index');
             Route::get('/{id}', [TransactionController::class, 'show'])->name('admin.transactions.show');
+            Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('admin.transactions.destroy');
         });
 
         // Inventory Management
@@ -111,6 +116,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/add-stock', [InventoryController::class, 'addStock'])->name('admin.inventory.add-stock');
             Route::post('/{id}/reduce-stock', [InventoryController::class, 'reduceStock'])->name('admin.inventory.reduce-stock');
             Route::post('/{id}/adjust', [InventoryController::class, 'adjustInventory'])->name('admin.inventory.adjust');
+            Route::delete('/{id}', [InventoryController::class, 'destroy'])->name('admin.inventory.destroy');
         });
 
         // Notification Management
@@ -149,6 +155,7 @@ Route::prefix('admin')->group(function () {
             Route::post('password', [SettingsController::class, 'changePassword'])->name('admin.settings.password.update');
             // Garden setups
             Route::get('garden-setups', [\App\Http\Controllers\Admin\GardenSetupController::class, 'index'])->name('admin.garden-setups.index');
+            Route::delete('garden-setups/{id}', [\App\Http\Controllers\Admin\GardenSetupController::class, 'destroy'])->name('admin.garden-setups.destroy');
         });
     });
 });

@@ -194,6 +194,16 @@ class PlatformController extends Controller
             $data['user_id'] = auth()->id();
         }
 
+        if (strtolower((string) ($validated['service_type'] ?? '')) === 'garden-setup' && ! empty($validated['budget'])) {
+            \App\Models\GardenSetup::create([
+                'name' => auth()->user()->name ?? null,
+                'phone' => $validated['phone'] ?? auth()->user()->phone ?? null,
+                'address' => $validated['address'] ?? null,
+                'budget' => (float) $validated['budget'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        }
+
         $booking = \App\Models\ServiceBooking::create($data);
 
         return redirect()->route('services')->with('success', 'Service request submitted — we will contact you shortly.');
@@ -232,7 +242,7 @@ class PlatformController extends Controller
         $name = $product->name ?? 'Product';
         $price = (int) ($product->price ?? 0);
         $stock = (int) ($product->stock ?? 0);
-        $quantity = (int) ($product->quantity ?? 0);
+        $quantity = $stock;
         $type = $product->type ?? 'general';
         $slug = Str::slug($name);
         $imageUrl = $product->image_url ?? 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80';

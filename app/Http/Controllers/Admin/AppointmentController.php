@@ -103,6 +103,20 @@ class AppointmentController extends Controller
         return redirect()->back()->with('success', 'Appointment cancelled successfully');
     }
 
+    public function destroy($id)
+    {
+        $appointment = ServiceBooking::findOrFail($id);
+
+        try {
+            $appointment->delete();
+            $this->logAudit('Appointment Deleted', 'appointments', $appointment->id, $appointment->toArray(), null);
+
+            return redirect()->route('admin.appointments.index')->with('success', 'Appointment deleted successfully');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to delete this appointment because it is still in use.');
+        }
+    }
+
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)
     {
         AuditLog::create([

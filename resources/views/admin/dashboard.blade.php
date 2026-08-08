@@ -13,11 +13,11 @@
     <div class="col-md-3">
         <div class="stat-card">
             <div class="stat-icon bg-primary-light">
-                <i class="fas fa-dollar-sign text-primary"></i>
+                <i class="fas fa-indian-rupee-sign text-primary"></i>
             </div>
             <div class="stat-content">
                 <p class="stat-label">Today's Revenue</p>
-                <h3 class="stat-value">${{ number_format($dailyRevenue, 2) }}</h3>
+                <h3 class="stat-value">₹{{ number_format($dailyRevenue, 2) }}</h3>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
             </div>
             <div class="stat-content">
                 <p class="stat-label">Weekly Revenue</p>
-                <h3 class="stat-value">${{ number_format($weeklyRevenue, 2) }}</h3>
+                <h3 class="stat-value">₹{{ number_format($weeklyRevenue, 2) }}</h3>
             </div>
         </div>
     </div>
@@ -39,7 +39,7 @@
             </div>
             <div class="stat-content">
                 <p class="stat-label">Monthly Revenue</p>
-                <h3 class="stat-value">${{ number_format($monthlyRevenue, 2) }}</h3>
+                <h3 class="stat-value">₹{{ number_format($monthlyRevenue, 2) }}</h3>
             </div>
         </div>
     </div>
@@ -50,7 +50,7 @@
             </div>
             <div class="stat-content">
                 <p class="stat-label">Yearly Revenue</p>
-                <h3 class="stat-value">${{ number_format($yearlyRevenue, 2) }}</h3>
+                <h3 class="stat-value">₹{{ number_format($yearlyRevenue, 2) }}</h3>
             </div>
         </div>
     </div>

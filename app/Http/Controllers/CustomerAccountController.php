@@ -110,7 +110,7 @@ class CustomerAccountController extends Controller
 
     public function orders()
     {
-        $query = Order::query()->latest();
+        $query = Order::with(['items.product.primaryImage', 'items.product.images'])->latest();
 
         if (auth()->check()) {
             $query->where('user_id', auth()->id());

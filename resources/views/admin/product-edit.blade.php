@@ -65,7 +65,7 @@
                                     </div>
                                     <div class="card-body p-2 text-center drag-handle">
                                         <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-btn" data-type="existing" data-id="{{ $image->id }}">
-                                            <i class="fas fa-trash"></i>
+                                            <i class="fas fa-trash-can"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -143,7 +143,7 @@
                             </div>
                             <div class="card-body p-2 text-center drag-handle">
                                 <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-btn" data-type="new">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash-can"></i>
                                 </button>
                             </div>
                         </div>

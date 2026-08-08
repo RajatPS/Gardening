@@ -67,7 +67,7 @@
                             <td><strong>#{{ $order->order_number }}</strong></td>
                             <td>{{ $order->customer_name }}</td>
                             <td>{{ optional($order->created_at)->format('M d, Y') ?? 'N/A' }}</td>
-                            <td>${{ number_format($order->total_amount, 2) }}</td>
+                            <td>₹{{ number_format($order->total_amount, 2) }}</td>
                             <td>
                                 @php
                                     $statusColors = [
@@ -99,6 +99,62 @@
                                     <a href="{{ route('admin.orders.invoice', $order->id) }}" class="btn btn-outline-info">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
+                                    <div class="btn-group" role="group">
+                                        <button id="orderStatusDropdown{{ $order->id }}" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            {{ ucfirst($order->status) }}
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="orderStatusDropdown{{ $order->id }}">
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="pending">
+                                                    <button type="submit" class="dropdown-item">Pending</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="processing">
+                                                    <button type="submit" class="dropdown-item">Processing</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="shipped">
+                                                    <button type="submit" class="dropdown-item">Shipped</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="out_for_delivery">
+                                                    <button type="submit" class="dropdown-item">Out for Delivery</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="delivered">
+                                                    <button type="submit" class="dropdown-item">Order Successful</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="cancelled">
+                                                    <button type="submit" class="dropdown-item">Order Cancelled</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.orders.destroy', $order->id) }}" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger" data-confirm="Delete this order?" data-confirm-title="Delete order" data-confirm-button-text="Delete">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

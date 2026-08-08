@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\RevenueService;
 use Illuminate\Routing\Controller;
 use App\Models\User;
 use App\Models\Product;
@@ -12,13 +13,17 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly RevenueService $revenueService)
+    {
+    }
+
     public function index()
     {
         // Revenue Statistics
-        $dailyRevenue = $this->getRevenueByPeriod('daily');
-        $weeklyRevenue = $this->getRevenueByPeriod('weekly');
-        $monthlyRevenue = $this->getRevenueByPeriod('monthly');
-        $yearlyRevenue = $this->getRevenueByPeriod('yearly');
+        $dailyRevenue = $this->revenueService->getRevenueByPeriod('daily');
+        $weeklyRevenue = $this->revenueService->getRevenueByPeriod('weekly');
+        $monthlyRevenue = $this->revenueService->getRevenueByPeriod('monthly');
+        $yearlyRevenue = $this->revenueService->getRevenueByPeriod('yearly');
 
         // Sales Statistics
         $totalOrders = DB::table('orders')->count();
@@ -46,7 +51,7 @@ class DashboardController extends Controller
         $expiringPlans = SubscriptionPlan::where('end_date', '<=', Carbon::now()->addDays(7))->count();
 
         // Chart Data
-        $revenueChart = $this->getRevenueChartData();
+        $revenueChart = $this->revenueService->getRevenueChartData();
         $salesChart = $this->getSalesChartData();
         $userGrowthChart = $this->getUserGrowthChartData();
         $subscriptionGrowthChart = $this->getSubscriptionGrowthChartData();
@@ -78,51 +83,6 @@ class DashboardController extends Controller
         ));
     }
 
-    private function getRevenueByPeriod($period)
-    {
-        $query = DB::table('transactions')
-            ->where('status', 'completed');
-
-        switch ($period) {
-            case 'daily':
-                $query->whereDate('created_at', Carbon::today());
-                break;
-            case 'weekly':
-                $query->whereBetween('created_at', [
-                    Carbon::now()->startOfWeek(),
-                    Carbon::now()->endOfWeek()
-                ]);
-                break;
-            case 'monthly':
-                $query->whereBetween('created_at', [
-                    Carbon::now()->startOfMonth(),
-                    Carbon::now()->endOfMonth()
-                ]);
-                break;
-            case 'yearly':
-                $query->whereBetween('created_at', [
-                    Carbon::now()->startOfYear(),
-                    Carbon::now()->endOfYear()
-                ]);
-                break;
-        }
-
-        return $query->sum('amount') ?? 0;
-    }
-
-    private function getRevenueChartData()
-    {
-        $data = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i)->format('Y-m-d');
-            $revenue = DB::table('transactions')
-                ->whereDate('created_at', $date)
-                ->where('status', 'completed')
-                ->sum('amount') ?? 0;
-            $data[Carbon::parse($date)->format('M d')] = $revenue;
-        }
-        return $data;
-    }
 
     private function getSalesChartData()
     {

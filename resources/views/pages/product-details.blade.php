@@ -24,7 +24,6 @@
                     <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
                         <span class="rounded-full bg-slate-100 px-2.5 py-1">Type: {{ $product['type'] ?? 'general' }}</span>
                         <span class="rounded-full bg-slate-100 px-2.5 py-1">Stock: {{ $product['stock'] ?? 0 }}</span>
-                        <span class="rounded-full bg-slate-100 px-2.5 py-1">Qty: {{ $product['quantity'] ?? 0 }}</span>
                         @if (!empty($product['weight']))
                             <span class="rounded-full bg-slate-100 px-2.5 py-1">Weight: {{ $product['weight'] }}</span>
                         @endif

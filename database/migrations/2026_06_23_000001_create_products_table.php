@@ -13,7 +13,6 @@ return new class extends Migration
             $table->string('name');
             $table->string('type')->index();
             $table->string('category')->index();
-            $table->integer('quantity')->index();
             $table->string('sku')->unique();
             $table->unsignedInteger('price');
             $table->unsignedInteger('stock')->default(0);

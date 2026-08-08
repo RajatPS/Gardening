@@ -31,7 +31,18 @@
                                 <td>{{ Str::limit($it->address,60) }}</td>
                                 <td>{{ $it->budget }}</td>
                                 <td>{{ $it->created_at->diffForHumans() }}</td>
-                                <td><a href="tel:{{ $it->phone }}" class="btn btn-sm btn-primary">Call</a></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="tel:{{ $it->phone }}" class="btn btn-primary">Call</a>
+                                            <form method="POST" action="{{ route('admin.garden-setups.destroy', $it->id) }}" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger" data-confirm="Delete this garden setup request?" data-confirm-title="Delete request" data-confirm-button-text="Delete">
+                                                    <i class="fas fa-trash-can"></i>
+                                                </button>
+                                            </form>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

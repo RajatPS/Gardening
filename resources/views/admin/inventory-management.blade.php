@@ -66,12 +66,21 @@
                                 @endif
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="showAddStockModal({{ $product->id }})">
-                                    <i class="fas fa-plus"></i> Add
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="showReduceStockModal({{ $product->id }})">
-                                    <i class="fas fa-minus"></i> Reduce
-                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="showAddStockModal({{ $product->id }})">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="showReduceStockModal({{ $product->id }})">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                        <form method="POST" action="{{ route('admin.inventory.destroy', $product) }}" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-dark btn-sm" data-confirm="Delete this inventory item?" data-confirm-title="Delete inventory item" data-confirm-button-text="Delete">
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

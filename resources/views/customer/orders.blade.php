@@ -31,6 +31,30 @@
                             </div>
                             <div class="text-sm font-semibold text-slate-950">₹{{ number_format($order->total_amount, 2) }}</div>
                         </div>
+
+                        <div class="mt-6 space-y-3">
+                            @forelse ($order->items as $item)
+                                <div class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
+                                    <div class="flex h-20 w-full items-center justify-center overflow-hidden rounded-md bg-slate-100 sm:h-24 sm:w-24">
+                                        @if (! empty($item->product?->image_url))
+                                            <img src="{{ $item->product->image_url }}" alt="{{ $item->product->name ?? 'Product image' }}" class="h-full w-full object-cover" />
+                                        @else
+                                            <div class="flex h-full w-full items-center justify-center text-xs text-slate-500">No Image</div>
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold text-slate-950">{{ $item->product->name ?? 'Product unavailable' }}</p>
+                                        <p class="mt-1 text-sm text-slate-600">Quantity: {{ $item->quantity }}</p>
+                                        <p class="mt-1 text-sm text-slate-600">Price: ₹{{ number_format($item->price, 2) }}</p>
+                                        <p class="mt-1 text-sm text-slate-500">Subtotal: ₹{{ number_format($item->subtotal, 2) }}</p>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                                    No products available for this order.
+                                </div>
+                            @endforelse
+                        </div>
                     </div>
                 @endforeach
             </div>

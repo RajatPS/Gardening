@@ -84,6 +84,8 @@
     </div>
 </div>
 
+@endsection
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -129,7 +131,7 @@
                             </div>
                             <div class="card-body p-2 text-center drag-handle">
                                 <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-btn">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash-can"></i>
                                 </button>
                             </div>
                         </div>

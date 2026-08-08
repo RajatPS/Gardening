@@ -102,6 +102,13 @@
                                     <button class="btn btn-outline-info" onclick="assignStaff({{ $appointment->id }})">
                                         <i class="fas fa-user-check"></i>
                                     </button>
+                                    <form method="POST" action="{{ route('admin.appointments.destroy', $appointment) }}" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this appointment?" data-confirm-title="Delete appointment" data-confirm-button-text="Delete">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

@@ -33,7 +33,6 @@ class AdminProductCreationTest extends TestCase
             'name' => 'Rose Plant',
             'type' => 'plant',
             'category' => 'Flowering Plants',
-            'quantity' => 10,
             'price' => 150,
             'stock' => 10,
             'is_active' => '1',
@@ -56,7 +55,6 @@ class AdminProductCreationTest extends TestCase
         $response = $this->post(route('admin.products.store'), [
             'name' => 'Kiddo Plant',
             'category' => 'Accessories',
-            'quantity' => 10,
             'price' => 23,
             'stock' => 320,
             'description' => 'asdasdsada',

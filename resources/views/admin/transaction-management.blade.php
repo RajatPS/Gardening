@@ -66,7 +66,7 @@
                             <td><strong>{{ $transaction->transaction_id }}</strong></td>
                             <td>{{ $transaction->user_name }}</td>
                             <td>#{{ $transaction->order_number }}</td>
-                            <td>${{ number_format($transaction->amount, 2) }}</td>
+                            <td>₹{{ number_format($transaction->amount, 2) }}</td>
                             <td>{{ ucfirst($transaction->payment_method) }}</td>
                             <td>
                                 @if($transaction->status === 'completed')
@@ -79,9 +79,18 @@
                             </td>
                             <td>{{ optional($transaction->created_at)->format('M d, Y') ?? 'N/A' }}</td>
                             <td>
-                                <a href="{{ route('admin.transactions.show', $transaction->id) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ route('admin.transactions.show', $transaction->id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                        <form method="POST" action="{{ route('admin.transactions.destroy', $transaction->id) }}" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this transaction?" data-confirm-title="Delete transaction" data-confirm-button-text="Delete">
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

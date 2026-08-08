@@ -23,7 +23,7 @@
                         @foreach($data as $row)
                             <tr>
                                 <td>{{ $row->date }}</td>
-                                <td>${{ number_format($row->total ?? 0, 2) }}</td>
+                                <td>₹{{ number_format($row->total ?? 0, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

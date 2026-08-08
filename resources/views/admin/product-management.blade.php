@@ -31,11 +31,10 @@
                         value="{{ request('search') }}">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <select class="form-select" name="status">
+                    <select class="form-select" name="is_active">
                         <option value="">All Status</option>
-                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
-                        <option value="hidden" {{ request('status') === 'hidden' ? 'selected' : '' }}>Hidden</option>
+                        <option value="1" {{ request('is_active') === '1' ? 'selected' : '' }}>Active</option>
+                        <option value="0" {{ request('is_active') === '0' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
                 <div class="col-md-2 mb-3">
@@ -98,14 +97,12 @@
                                     <span class="badge bg-danger">Out of stock</span>
                                 @endif
                             </td>
-                            <td>${{ number_format($product->price, 2) }}</td>
+                            <td>₹{{ number_format($product->price, 2) }}</td>
                             <td>
-                                @if($product->status === 'active')
+                                @if($product->is_active)
                                     <span class="badge bg-success">Active</span>
-                                @elseif($product->status === 'draft')
-                                    <span class="badge bg-secondary">Draft</span>
                                 @else
-                                    <span class="badge bg-danger">Hidden</span>
+                                    <span class="badge bg-danger">Inactive</span>
                                 @endif
                             </td>
                             <td>
@@ -116,14 +113,29 @@
                                     <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-outline-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    @if($product->is_active)
+                                        <form method="POST" action="{{ route('admin.products.deactivate', $product) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-danger" title="Deactivate Product">
+                                                <i class="fas fa-power-off me-1"></i> Deactivate
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('admin.products.activate', $product) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-success" title="Activate Product">
+                                                <i class="fas fa-power-off me-1"></i> Activate
+                                            </button>
+                                        </form>
+                                    @endif
                                     <form method="POST" action="{{ route('admin.products.destroy', $product) }}" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                        <button type="submit" class="btn btn-outline-danger" 
                                             data-confirm="Delete this product?"
                                             data-confirm-title="Delete product"
                                             data-confirm-button-text="Delete">
-                                            <i class="fas fa-trash"></i>
+                                            <i class="fas fa-trash-can"></i>
                                         </button>
                                     </form>
                                 </div>

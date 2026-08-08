@@ -24,8 +24,8 @@ class ProductController extends Controller
             });
         }
 
-        if ($request->filled('is_active')) {
-            $query->where('is_active', $request->input('is_active'));
+        if ($request->has('is_active') && $request->input('is_active') !== '') {
+            $query->where('is_active', $request->boolean('is_active'));
         }
 
         if ($request->filled('stock_status')) {
@@ -245,6 +245,26 @@ class ProductController extends Controller
         $this->logAudit('Product Updated', 'products', $product->id, null, $validated);
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully');
+    }
+
+    public function activate($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->update(['is_active' => true]);
+
+        $this->logAudit('Product Activated', 'products', $product->id, 'inactive', 'active');
+
+        return redirect()->back()->with('success', 'Product activated successfully');
+    }
+
+    public function deactivate($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->update(['is_active' => false]);
+
+        $this->logAudit('Product Deactivated', 'products', $product->id, 'active', 'inactive');
+
+        return redirect()->back()->with('success', 'Product deactivated successfully');
     }
 
     public function destroy($id)

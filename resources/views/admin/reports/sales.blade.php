@@ -25,7 +25,7 @@
                             <tr>
                                 <td>{{ ucfirst($row->status ?? 'unknown') }}</td>
                                 <td>{{ $row->count ?? 0 }}</td>
-                                <td>${{ number_format($row->amount ?? 0, 2) }}</td>
+                                <td>₹{{ number_format($row->amount ?? 0, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

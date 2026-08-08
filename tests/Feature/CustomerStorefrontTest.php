@@ -19,7 +19,6 @@ class CustomerStorefrontTest extends TestCase
             'name' => 'Areca Palm',
             'type' => 'plant',
             'category' => 'Air purifying indoor plant',
-            'quantity' => 10,
             'price' => 799,
             'stock' => 10,
         ]);
@@ -42,7 +41,6 @@ class CustomerStorefrontTest extends TestCase
             'name' => 'Ceramic Self-Watering Pot',
             'type' => 'accessory',
             'category' => 'Decorative pot',
-            'quantity' => 5,
             'price' => 1199,
             'stock' => 5,
         ]);
@@ -81,7 +79,6 @@ class CustomerStorefrontTest extends TestCase
             'name' => 'Organic Growth Kit',
             'type' => 'kit',
             'category' => 'Plant care bundle',
-            'quantity' => 3,
             'price' => 649,
             'stock' => 20,
         ]);

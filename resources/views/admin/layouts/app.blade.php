@@ -73,6 +73,35 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-confirm]');
+        if (!btn) return;
+        // prevent default action until confirmed
+        e.preventDefault();
+        const message = btn.getAttribute('data-confirm') || 'Are you sure?';
+        const title = btn.getAttribute('data-confirm-title') || 'Confirm';
+        const confirmText = btn.getAttribute('data-confirm-button-text') || 'Yes';
+        const form = btn.closest('form');
+
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (form) {
+                    form.submit();
+                } else if (btn.tagName === 'A' && btn.href) {
+                    window.location = btn.href;
+                }
+            }
+        });
+    });
+    </script>
     <script src="{{ asset('js/admin.js') }}"></script>
     @stack('scripts')
 </body>
