@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use App\Models\AuditLog;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
@@ -112,6 +113,72 @@ class OrderController extends Controller
         $filename = 'invoice-' . $order->order_number . '.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    public function recordCodPayment(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'collected_amount' => 'required|numeric|min:0',
+        ]);
+
+        $order = DB::table('orders')->where('id', $id)->first();
+        if (! $order) {
+            return redirect()->back()->with('error', 'Order not found.');
+        }
+
+        if ($order->payment_method !== 'cod' && $order->payment_method !== 'cash') {
+            return redirect()->back()->with('error', 'This order is not eligible for COD payment capture.');
+        }
+
+        if ($order->status !== 'delivered') {
+            return redirect()->back()->with('error', 'COD payment can only be recorded after the order is delivered.');
+        }
+
+        if ($order->payment_status === 'paid') {
+            return redirect()->back()->with('success', 'COD payment has already been recorded for this order.');
+        }
+
+        if (round((float) $validated['collected_amount'], 2) !== round((float) $order->total_amount, 2)) {
+            return redirect()->back()->with('error', 'Collected amount does not match the order total.');
+        }
+
+        try {
+            DB::transaction(function () use ($order, $validated) {
+                $transactionId = 'cod-' . $order->order_number;
+
+                $transaction = Transaction::firstOrNew([
+                    'transaction_id' => $transactionId,
+                ]);
+
+                $transaction->fill([
+                    'user_id' => $order->user_id,
+                    'order_id' => $order->id,
+                    'amount' => $validated['collected_amount'],
+                    'payment_method' => 'cod',
+                    'payment_gateway' => 'cash',
+                    'status' => 'completed',
+                    'payment_details' => [
+                        'gateway' => 'cash_on_delivery',
+                        'order_id' => $order->order_number,
+                        'collected_amount' => $validated['collected_amount'],
+                    ],
+                    'gateway_response' => [
+                        'method' => 'cash_on_delivery',
+                        'collected_by' => auth()->id(),
+                        'collected_at' => now()->toISOString(),
+                    ],
+                    'response' => 'Cash on Delivery payment collected and recorded.',
+                ]);
+
+                $transaction->save();
+
+                DB::table('orders')->where('id', $order->id)->update(['payment_status' => 'paid']);
+            });
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to record COD payment.');
+        }
+
+        return redirect()->back()->with('success', 'COD payment recorded successfully.');
     }
 
     public function cancel($id)

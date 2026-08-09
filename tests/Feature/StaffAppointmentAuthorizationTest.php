@@ -6,12 +6,17 @@ use App\Models\ServiceBooking;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class StaffAppointmentAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+    }
     public function test_dashboard_includes_nearby_appointment_when_geocoding_succeeds(): void
     {
         Http::fake(function ($request) {
@@ -75,7 +80,7 @@ class StaffAppointmentAuthorizationTest extends TestCase
         $otherStaff = $this->staff('Mumbai');
         $booking = $this->booking(['assigned_staff_id' => $otherStaff->id, 'status' => 'assigned']);
 
-        $response = $this->actingAs($staff)->post(route('staff.appointments.accept', $booking));
+        $response = $this->postAcceptAppointment($staff, $booking);
 
         $response->assertRedirect();
         $response->assertSessionHasErrors();
@@ -89,7 +94,7 @@ class StaffAppointmentAuthorizationTest extends TestCase
         $staff = $this->staff('Mumbai');
         $booking = $this->booking(['city' => 'Kolkata', 'address_line' => 'Park Street, Kolkata']);
 
-        $response = $this->actingAs($staff)->post(route('staff.appointments.accept', $booking));
+        $response = $this->postAcceptAppointment($staff, $booking);
 
         $response->assertRedirect();
         $response->assertSessionHasErrors();
@@ -107,8 +112,8 @@ class StaffAppointmentAuthorizationTest extends TestCase
         $secondStaff = $this->staff('Mumbai');
         $booking = $this->booking();
 
-        $this->actingAs($firstStaff)->post(route('staff.appointments.accept', $booking))->assertRedirect();
-        $this->actingAs($secondStaff)->post(route('staff.appointments.accept', $booking))->assertSessionHasErrors();
+        $this->postAcceptAppointment($firstStaff, $booking)->assertRedirect();
+        $this->postAcceptAppointment($secondStaff, $booking)->assertSessionHasErrors();
 
         $booking->refresh();
         $this->assertSame($firstStaff->id, $booking->assigned_staff_id);
@@ -143,6 +148,15 @@ class StaffAppointmentAuthorizationTest extends TestCase
             'city' => $city,
             'must_change_password' => false,
         ]);
+    }
+
+    private function postAcceptAppointment(User $staff, ServiceBooking $booking)
+    {
+        $csrfToken = Str::random(40);
+
+        return $this->actingAs($staff)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('staff.appointments.accept', $booking), ['_token' => $csrfToken]);
     }
 
     private function booking(array $attributes = []): ServiceBooking

@@ -52,6 +52,7 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'phone' => 'required|string|max:20',
+            'city' => 'nullable|string|max:255',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:staff',
             'status' => 'required|in:active,suspended',
@@ -90,6 +91,7 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|max:20',
+            'city' => 'nullable|string|max:255',
             'status' => 'required|in:active,suspended',
         ]);
 

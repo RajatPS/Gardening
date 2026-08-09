@@ -116,7 +116,7 @@
                                     <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                        <button type="submit" class="btn btn-outline-danger admin-action-delete" 
                                             data-confirm="Delete this user permanently?"
                                             data-confirm-title="Delete user"
                                             data-confirm-button-text="Delete">

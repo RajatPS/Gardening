@@ -139,6 +139,14 @@
             </div>
 
             <div class="form-group">
+                <label class="form-label fw-semibold">City</label>
+                <input type="text" class="form-control @error('city') is-invalid @enderror" name="city" value="{{ old('city') }}">
+                @error('city')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="form-group">
                 <label class="form-label fw-semibold">Password</label>
                 <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" required>
                 @error('password')

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\ServiceBooking;
 use App\Models\AuditLog;
+use App\Services\AppointmentLocalityService;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 
@@ -48,7 +49,61 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = ServiceBooking::with('user', 'staff')->findOrFail($id);
-        return view('admin.appointment-management', compact('appointment'));
+        $appointments = collect([$appointment]);
+        $statusOptions = $this->appointmentStatusOptions();
+
+        return view('admin.appointment-management', compact('appointments', 'appointment', 'statusOptions'));
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,confirmed,assigned,scheduled,in_progress,completed,cancelled',
+        ]);
+
+        $appointment = ServiceBooking::findOrFail($id);
+        $appointment->update(['status' => $validated['status']]);
+
+        $this->logAudit('Appointment Status Updated', 'appointments', $id, null, $validated['status']);
+
+        return redirect()->back()->with('success', 'Appointment status updated successfully');
+    }
+
+    public function searchStaff(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => 'nullable|string|max:255',
+            'appointment_id' => 'required|integer|exists:service_bookings,id',
+        ]);
+
+        $appointment = ServiceBooking::findOrFail($validated['appointment_id']);
+        $query = \App\Models\User::query()
+            ->where('role', 'staff')
+            ->where('status', 'active');
+
+        if (! empty($validated['q'])) {
+            $query->where(function ($q) use ($validated) {
+                $q->where('name', 'like', '%' . $validated['q'] . '%')
+                  ->orWhere('email', 'like', '%' . $validated['q'] . '%')
+                  ->orWhere('phone', 'like', '%' . $validated['q'] . '%');
+            });
+        }
+
+        $localityService = new AppointmentLocalityService();
+        $bookingCity = $localityService->resolveBookingCity($appointment->city, $appointment->address_line);
+
+        $staff = $query->get()->filter(function ($staffMember) use ($localityService, $bookingCity, $appointment) {
+            return $bookingCity === null || $localityService->isRelevant($staffMember->city, $bookingCity, $appointment->address_line);
+        })->take(25)->map(function ($staffMember) {
+            return [
+                'id' => $staffMember->id,
+                'name' => $staffMember->name,
+                'phone' => $staffMember->phone,
+                'city' => $staffMember->city,
+            ];
+        })->values();
+
+        return response()->json($staff);
     }
 
     public function assignStaff(Request $request, $id)
@@ -58,7 +113,27 @@ class AppointmentController extends Controller
         ]);
 
         $appointment = ServiceBooking::findOrFail($id);
-        $appointment->update(['assigned_staff_id' => $validated['staff_id']]);
+        $staff = \App\Models\User::findOrFail($validated['staff_id']);
+
+        if ($staff->role !== 'staff') {
+            return redirect()->back()->withErrors('The selected user is not a staff member.');
+        }
+
+        if ($staff->status !== 'active') {
+            return redirect()->back()->withErrors('The selected staff member is not active.');
+        }
+
+        $localityService = new AppointmentLocalityService();
+        $bookingCity = $localityService->resolveBookingCity($appointment->city, $appointment->address_line);
+
+        if ($bookingCity !== null && ! $localityService->isRelevant($staff->city, $bookingCity, $appointment->address_line)) {
+            return redirect()->back()->withErrors('The selected staff member is outside the appointment service area.');
+        }
+
+        $appointment->update([
+            'assigned_staff_id' => $validated['staff_id'],
+            'status' => in_array($appointment->status, ['pending', 'confirmed'], true) ? 'assigned' : $appointment->status,
+        ]);
 
         $this->logAudit('Staff Assigned', 'appointments', $id, null, $validated['staff_id']);
 
@@ -75,7 +150,8 @@ class AppointmentController extends Controller
         $appointment = ServiceBooking::findOrFail($id);
         $appointment->update([
             'booking_date' => $validated['booking_date'],
-            'time_slot' => $validated['time_slot']
+            'time_slot' => $validated['time_slot'],
+            'status' => in_array($appointment->status, ['pending', 'confirmed', 'assigned'], true) ? 'scheduled' : $appointment->status,
         ]);
 
         $this->logAudit('Appointment Rescheduled', 'appointments', $id, null, $validated);
@@ -115,6 +191,11 @@ class AppointmentController extends Controller
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', 'Unable to delete this appointment because it is still in use.');
         }
+    }
+
+    private function appointmentStatusOptions(): array
+    {
+        return ['pending', 'confirmed', 'assigned', 'scheduled', 'in_progress', 'completed', 'cancelled'];
     }
 
     private function logAudit($action, $module, $recordId, $oldValue, $newValue)

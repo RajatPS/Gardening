@@ -112,6 +112,7 @@ class StaffAuthController extends Controller
             'phone' => 'required|string|max:20',
             'country_code' => 'required|string|max:6',
             'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:255',
             'otp' => 'required|digits:6',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -129,6 +130,7 @@ class StaffAuthController extends Controller
             'email' => $validated['email'],
             'phone' => $phone,
             'address' => $validated['address'] ?? null,
+            'city' => $validated['city'] ?? null,
             'password' => $validated['password'],
             'role' => 'staff',
             'status' => 'active',

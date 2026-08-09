@@ -131,7 +131,7 @@
                                     <form method="POST" action="{{ route('admin.products.destroy', $product) }}" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" 
+                                        <button type="submit" class="btn btn-outline-danger admin-action-delete" 
                                             data-confirm="Delete this product?"
                                             data-confirm-title="Delete product"
                                             data-confirm-button-text="Delete">

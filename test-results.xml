@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\Users\pranay\Desktop\gardening\phpunit.xml" tests="7" assertions="16" errors="0" failures="3" skipped="0" time="10.167388">
+    <testsuite name="Feature" tests="7" assertions="16" errors="0" failures="3" skipped="0" time="10.167388">
+      <testsuite name="Tests\Feature\StaffAppointmentAuthorizationTest" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" tests="7" assertions="16" errors="0" failures="3" skipped="0" time="10.167388">
+        <testcase name="test_dashboard_includes_nearby_appointment_when_geocoding_succeeds" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="20" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="2" time="9.900073"/>
+        <testcase name="test_dashboard_uses_normalized_city_name_when_geocoding_fails" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="42" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="2" time="0.073324"/>
+        <testcase name="test_dashboard_excludes_appointments_outside_the_staff_service_area" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="58" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="2" time="0.035995"/>
+        <testcase name="test_staff_cannot_accept_appointment_already_assigned_to_another_staff_member" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="77" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="1" time="0.052826">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\StaffAppointmentAuthorizationTest::test_staff_cannot_accept_appointment_already_assigned_to_another_staff_member&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 419.
+Failed asserting that false is true.
+&#13;
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:200
+C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php:85</failure>
+        </testcase>
+        <testcase name="test_staff_cannot_accept_an_appointment_outside_its_service_area" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="90" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="1" time="0.032555">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\StaffAppointmentAuthorizationTest::test_staff_cannot_accept_an_appointment_outside_its_service_area&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 419.
+Failed asserting that false is true.
+&#13;
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:200
+C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php:99</failure>
+        </testcase>
+        <testcase name="test_only_one_staff_member_can_claim_an_appointment_when_requests_compete" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="109" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="1" time="0.037033">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\StaffAppointmentAuthorizationTest::test_only_one_staff_member_can_claim_an_appointment_when_requests_compete&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 419.
+Failed asserting that false is true.
+&#13;
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\Users\pranay\Desktop\gardening\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:200
+C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php:115</failure>
+        </testcase>
+        <testcase name="test_dashboard_counters_match_the_appointments_shown_to_the_staff_member" file="C:\Users\pranay\Desktop\gardening\tests\Feature\StaffAppointmentAuthorizationTest.php" line="123" class="Tests\Feature\StaffAppointmentAuthorizationTest" classname="Tests.Feature.StaffAppointmentAuthorizationTest" assertions="7" time="0.035583"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

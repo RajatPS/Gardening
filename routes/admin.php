@@ -77,6 +77,7 @@ Route::prefix('admin')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('admin.orders.index');
             Route::get('/{id}', [OrderController::class, 'show'])->name('admin.orders.show');
             Route::post('/{id}/update-status', [OrderController::class, 'updateStatus'])->name('admin.orders.update-status');
+            Route::post('/{id}/record-cod-payment', [OrderController::class, 'recordCodPayment'])->name('admin.orders.record-cod-payment');
             Route::get('/{id}/invoice', [OrderController::class, 'generateInvoice'])->name('admin.orders.invoice');
             Route::post('/{id}/cancel', [OrderController::class, 'cancel'])->name('admin.orders.cancel');
             Route::delete('/{id}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
@@ -88,6 +89,8 @@ Route::prefix('admin')->group(function () {
             Route::get('/{id}', [AppointmentController::class, 'show'])->name('admin.appointments.show');
             Route::post('/{id}/assign-staff', [AppointmentController::class, 'assignStaff'])->name('admin.appointments.assign-staff');
             Route::post('/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('admin.appointments.reschedule');
+            Route::post('/{id}/update-status', [AppointmentController::class, 'updateStatus'])->name('admin.appointments.update-status');
+            Route::get('/search-staff', [AppointmentController::class, 'searchStaff'])->name('admin.appointments.search-staff');
             Route::post('/{id}/complete', [AppointmentController::class, 'complete'])->name('admin.appointments.complete');
             Route::post('/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
             Route::delete('/{id}', [AppointmentController::class, 'destroy'])->name('admin.appointments.destroy');

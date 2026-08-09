@@ -18,6 +18,11 @@ class AppointmentLocalityService
             return true;
         }
 
+        // Allow branch/region alias matching for nearby localities.
+        if ($this->areCitiesInSameRegion($staffCity, $appointmentCity)) {
+            return true;
+        }
+
         $distanceService = new LocationDistanceService();
         $distance = $distanceService->calculateDistanceKm($staffCity, $appointmentCity);
 
@@ -31,6 +36,18 @@ class AppointmentLocalityService
         $normAppointment = $this->normalizeForComparison($appointmentCity);
 
         return $normStaff !== '' && $normStaff === $normAppointment;
+    }
+
+    private function areCitiesInSameRegion(string $staffCity, string $appointmentCity): bool
+    {
+        $staffCluster = $this->nearbyCities($staffCity);
+        $appointmentCluster = $this->nearbyCities($appointmentCity);
+
+        if (empty($staffCluster) || empty($appointmentCluster)) {
+            return false;
+        }
+
+        return ! empty(array_intersect($staffCluster, $appointmentCluster));
     }
 
     private function normalizeForComparison(string $city): string

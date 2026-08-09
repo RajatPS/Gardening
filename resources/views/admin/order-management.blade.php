@@ -151,7 +151,7 @@
                                     <form method="POST" action="{{ route('admin.orders.destroy', $order->id) }}" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" data-confirm="Delete this order?" data-confirm-title="Delete order" data-confirm-button-text="Delete">
+                                        <button type="submit" class="btn btn-outline-danger admin-action-delete" data-confirm="Delete this order?" data-confirm-title="Delete order" data-confirm-button-text="Delete">
                                             <i class="fas fa-trash-can"></i>
                                         </button>
                                     </form>

@@ -57,6 +57,7 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
+                        <th>City</th>
                         <th>Joined</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -71,6 +72,7 @@
                             </td>
                             <td>{{ $member->email }}</td>
                             <td>{{ $member->phone }}</td>
+                            <td>{{ $member->city ?? 'N/A' }}</td>
                             <td>{{ optional($member->created_at)->format('M d, Y') ?? 'N/A' }}</td>
                             <td>
                                 @if($member->status === 'active')

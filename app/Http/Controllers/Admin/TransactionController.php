@@ -31,7 +31,11 @@ class TransactionController extends Controller
         }
 
         if ($request->filled('payment_method')) {
-            $query->where('transactions.payment_method', $request->input('payment_method'));
+            $paymentMethod = $request->input('payment_method');
+            $query->where(function ($q) use ($paymentMethod) {
+                $q->where('transactions.payment_method', $paymentMethod)
+                  ->orWhere('transactions.payment_gateway', $paymentMethod);
+            });
         }
 
         if ($request->filled('date_from') && $request->filled('date_to')) {

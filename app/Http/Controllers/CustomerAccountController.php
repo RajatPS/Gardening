@@ -145,7 +145,7 @@ class CustomerAccountController extends Controller
         }
 
         if (! $this->paymentGatewayEnabled()) {
-            return $this->completeCartOrderDirectly($items, $summary, $request);
+            return $this->completeCartOrderDirectly($items, $summary, $request, 'mock');
         }
 
         return view('customer.cart-payment', [
@@ -184,15 +184,20 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'The payable amount could not be validated. Please try again.');
         }
 
+        if ($paymentMethod === 'cash') {
+            return $this->createCashOnDeliveryOrder($items, $summary, $request);
+        }
+
         if ($this->paymentGatewayEnabled()) {
             $order = $this->createRazorpayOrder($summary['amount_in_paise'], $currency, 'cart-checkout', $paymentMethod);
 
             if ($order['success']) {
-                $transaction = Transaction::create([
+                $transaction = Transaction::firstOrCreate([
+                    'transaction_id' => $order['data']['id'],
+                ], [
                     'user_id'         => auth()->id(),
                     'subscription_id' => null,
                     'order_id'        => null,
-                    'transaction_id'  => $order['data']['id'],
                     'amount'          => $summary['grand_total'],
                     'payment_method'  => $paymentMethod,
                     'payment_gateway' => 'razorpay',
@@ -221,8 +226,7 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'Could not initiate payment. Please try again.');
         }
 
-        // Fallback: mock/cash flow
-        return $this->completeCartOrderDirectly($items, $summary, $request);
+        return $this->completeCartOrderDirectly($items, $summary, $request, $paymentMethod);
     }
 
     public function checkoutVerify(Request $request)
@@ -244,6 +248,10 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'We could not find the payment record. Please try again.');
         }
 
+        if ($transaction->order_id) {
+            return redirect()->route('customer.orders')->with('success', 'Payment has already been processed and your order is confirmed.');
+        }
+
         $signature = $this->buildSignature($validated['razorpay_order_id'], $validated['razorpay_payment_id'], $validated['razorpay_signature']);
 
         if (! $signature['valid']) {
@@ -260,7 +268,6 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'Payment could not be verified. Your cart is intact — please try again.');
         }
 
-        // Payment verified — create order inside a DB transaction
         $items = $this->selectedCartItems($request);
 
         if ($items->isEmpty()) {
@@ -276,6 +283,7 @@ class CustomerAccountController extends Controller
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
                 'payment_status'   => 'paid',
+                'payment_method'   => $validated['payment_method'],
                 'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
                 'notes'            => 'Placed from cart — paid via Razorpay',
             ]);
@@ -629,17 +637,18 @@ class CustomerAccountController extends Controller
         return $product->image_url;
     }
 
-    private function completeCartOrderDirectly($items, array $summary, Request $request)
+    private function completeCartOrderDirectly($items, array $summary, Request $request, string $paymentMethod = 'cash')
     {
         $order = null;
 
-        DB::transaction(function () use ($items, $summary, $request, &$order) {
+        DB::transaction(function () use ($items, $summary, $request, $paymentMethod, &$order) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
-                'payment_status'   => 'paid',
+                'payment_status'   => in_array($paymentMethod, ['cash','cod'], true) ? 'pending' : 'paid',
+                'payment_method'   => $paymentMethod,
                 'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
                 'notes'            => $request->input('notes', 'Placed from cart'),
             ]);
@@ -656,23 +665,63 @@ class CustomerAccountController extends Controller
                 ]);
             }
 
-            Transaction::create([
-                'user_id'          => auth()->id(),
-                'order_id'         => $order->id,
-                'transaction_id'   => 'local-' . Str::uuid()->toString(),
-                'amount'           => $summary['grand_total'],
-                'payment_method'   => 'cash',
-                'payment_gateway'  => 'mock',
-                'status'           => 'completed',
-                'payment_details'  => ['gateway' => 'mock', 'type' => 'cart_checkout'],
-                'gateway_response' => ['gateway' => 'mock', 'message' => 'Payment completed using the local fallback flow.'],
-                'response'         => 'Payment completed using the local fallback flow.',
-            ]);
+            if ($paymentMethod !== 'cash') {
+                Transaction::create([
+                    'user_id'          => auth()->id(),
+                    'order_id'         => $order->id,
+                    'transaction_id'   => 'local-' . Str::uuid()->toString(),
+                    'amount'           => $summary['grand_total'],
+                    'payment_method'   => $paymentMethod,
+                    'payment_gateway'  => 'mock',
+                    'status'           => 'completed',
+                    'payment_details'  => ['gateway' => 'mock', 'type' => 'cart_checkout'],
+                    'gateway_response' => ['gateway' => 'mock', 'message' => 'Payment completed using the local fallback flow.'],
+                    'response'         => 'Payment completed using the local fallback flow.',
+                ]);
+            }
 
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
 
+        session()->forget('checkout_selected_ids');
+
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully.');
+    }
+
+    private function createCashOnDeliveryOrder($items, array $summary, Request $request)
+    {
+        $order = null;
+
+        DB::transaction(function () use ($items, $summary, $request, &$order) {
+            $order = Order::create([
+                'user_id'          => auth()->id(),
+                'order_number'     => 'ORD-' . strtoupper(uniqid()),
+                'total_amount'     => $summary['grand_total'],
+                'status'           => 'pending',
+                'payment_status'   => 'pending',
+                'payment_method'   => 'cod',
+                'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
+                'notes'            => 'Cash on Delivery order placed from cart',
+            ]);
+
+            foreach ($items as $item) {
+                $product = Product::where('name', $item->product_name)->first();
+
+                OrderItem::create([
+                    'order_id'   => $order->id,
+                    'product_id' => $product?->id,
+                    'quantity'   => $item->quantity,
+                    'price'      => $item->price,
+                    'subtotal'   => $item->price * $item->quantity,
+                ]);
+            }
+
+            CartItem::whereIn('id', $items->pluck('id')->all())->delete();
+        });
+
+        session()->forget('checkout_selected_ids');
+
+        return redirect()->route('customer.orders')->with('success', 'COD order placed successfully. Collect cash on delivery after delivery.');
     }
 
     private function paymentGatewayEnabled(): bool

@@ -161,6 +161,7 @@ class PlatformController extends Controller
             'preferred_at' => 'nullable|date',
             'area_size' => 'nullable|string',
             'address' => 'nullable|string',
+            'city' => 'nullable|string|max:255',
             'budget' => 'nullable|numeric',
             'phone' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -168,7 +169,11 @@ class PlatformController extends Controller
         ]);
 
         $localityService = new AppointmentLocalityService();
-        $city = $localityService->resolveBookingCity(null, $validated['address'] ?? null);
+        $city = $localityService->resolveBookingCity($validated['city'] ?? null, $validated['address'] ?? null);
+
+        if ($city === null && auth()->check() && ! empty(auth()->user()->city)) {
+            $city = $localityService->normalizeCity(auth()->user()->city);
+        }
 
         $data = [
             'service_type' => $validated['service_type'],

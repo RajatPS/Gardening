@@ -32,6 +32,14 @@
                             <label class="block text-sm font-medium text-slate-700">Preferred date & time</label>
                             <input type="datetime-local" name="preferred_at" class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">City</label>
+                            <input type="text" name="city" value="{{ old('city') }}" class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
+                            @error('city')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
                     <div id="dynamicFields" class="mt-6 grid gap-4"></div>

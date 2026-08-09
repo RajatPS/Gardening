@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Branch;
 use App\Models\User;
 
 class ServiceBooking extends Model
@@ -36,5 +38,17 @@ class ServiceBooking extends Model
     public function staff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_staff_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function assignedStaff(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'appointment_staff', 'appointment_id', 'staff_id')
+            ->withPivot(['assigned_at'])
+            ->withTimestamps();
     }
 }

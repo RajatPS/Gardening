@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\Product;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -17,10 +18,68 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
+        User::updateOrCreate([
             'email' => 'test@example.com',
+        ], [
+            'name' => 'Test User',
+            'password' => bcrypt('1122334455'),
+            'role' => 'customer',
+            'status' => 'active',
+            'user_type' => 'customer',
         ]);
+
+        User::updateOrCreate([
+            'email' => 'admin1@gmail.com',
+        ], [
+            'name' => 'Admin One',
+            'password' => bcrypt('1122334455'),
+            'role' => 'admin',
+            'status' => 'active',
+            'user_type' => 'admin',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 'u1@gmail.com',
+        ], [
+            'name' => 'U1 User',
+            'password' => bcrypt('1122334455'),
+            'role' => 'customer',
+            'status' => 'active',
+            'user_type' => 'customer',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 's1@gmail.com',
+        ], [
+            'name' => 'Staff One',
+            'password' => bcrypt('1122334455'),
+            'role' => 'staff',
+            'status' => 'active',
+            'user_type' => 'staff',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 's2@gmail.com',
+        ], [
+            'name' => 'Staff Two',
+            'password' => bcrypt('1122334455'),
+            'role' => 'staff',
+            'status' => 'active',
+            'user_type' => 'staff',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 's3@gmail.com',
+        ], [
+            'name' => 'Staff Three',
+            'password' => bcrypt('1122334455'),
+            'role' => 'staff',
+            'status' => 'active',
+            'user_type' => 'staff',
+        ]);
+
+        Branch::updateOrCreate(['name' => 'Madharihat'], ['name' => 'Madharihat']);
+        Branch::updateOrCreate(['name' => 'Kolkata'], ['name' => 'Kolkata']);
 
         Product::query()->upsert([
             [
