@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\SavedProduct;
 use App\Services\AppointmentLocalityService;
+use App\Services\BranchResolverService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -162,6 +163,7 @@ class PlatformController extends Controller
             'area_size' => 'nullable|string',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:255',
+            'pin_code' => 'required|digits:6',
             'budget' => 'nullable|numeric',
             'phone' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -175,14 +177,32 @@ class PlatformController extends Controller
             $city = $localityService->normalizeCity(auth()->user()->city);
         }
 
+        $branchResolver = new BranchResolverService();
+        $customerLocation = $branchResolver->resolveCustomerLocation(
+            $validated['address'] ?? null,
+            $city,
+            $validated['pin_code']
+        );
+
         $data = [
             'service_type' => $validated['service_type'],
             'preferred_at' => $validated['preferred_at'] ?? null,
             'address_line' => $validated['address'] ?? null,
             'city' => $city,
+            'pin_code' => $validated['pin_code'],
             'customer_notes' => $validated['notes'] ?? null,
             'status' => 'pending',
         ];
+
+        if ($customerLocation !== null) {
+            $data['latitude'] = $customerLocation['lat'];
+            $data['longitude'] = $customerLocation['lon'];
+
+            $nearestBranch = $branchResolver->resolveNearestBranchToCoordinates($customerLocation);
+            if ($nearestBranch !== null) {
+                $data['branch_id'] = $nearestBranch->id;
+            }
+        }
 
         // Handle image uploads
         $uploaded = [];

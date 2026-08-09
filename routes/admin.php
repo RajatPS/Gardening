@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\{
+    BranchController,
     DashboardController,
     UserController,
     StaffController,
@@ -82,6 +83,8 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/cancel', [OrderController::class, 'cancel'])->name('admin.orders.cancel');
             Route::delete('/{id}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
         });
+
+        Route::post('branch/select', [BranchController::class, 'select'])->name('admin.branch.select');
 
         // Appointment Management
         Route::prefix('appointments')->group(function () {

@@ -8,6 +8,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -46,6 +47,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'profile_image',
         'city',
         'branch_id',
+        'staff_id',
         'capabilities',
         'current_duty',
         'must_change_password',
@@ -91,9 +93,21 @@ class User extends Authenticatable implements CanResetPasswordContract
         return $this->hasMany(ServiceBooking::class, 'assigned_staff_id');
     }
 
-    public function assignedStaffAppointments(): HasMany
+    public function appointments(): HasMany
     {
-        return $this->hasManyThrough(ServiceBooking::class, AppointmentStaff::class, 'staff_id', 'id', 'id', 'appointment_id');
+        return $this->hasMany(ServiceBooking::class, 'user_id');
+    }
+
+    public function assignedStaffAppointments(): HasManyThrough
+    {
+        return $this->hasManyThrough(ServiceBooking::class, AppointmentStaff::class, 'staff_id', 'appointment_id', 'id', 'id');
+    }
+
+    public function assignedTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceBooking::class, 'appointment_staff', 'staff_id', 'appointment_id')
+            ->withPivot(['assigned_at'])
+            ->withTimestamps();
     }
 
     public function shouldRequirePasswordChange(): bool

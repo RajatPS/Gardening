@@ -97,6 +97,9 @@
                                 @if($appointment->user)
                                     <div class="text-muted small">ID: {{ $appointment->user->id }}</div>
                                 @endif
+                                @if($appointment->pin_code)
+                                    <div class="text-muted small">PIN: {{ $appointment->pin_code }}</div>
+                                @endif
                             </td>
                             <td>{{ ucfirst($appointment->service_type) }}</td>
                             <td>
@@ -108,9 +111,15 @@
                                 @endif
                             </td>
                             <td>
-                                @if($appointment->staff)
-                                    {{ $appointment->staff->name }}
-                                    <div class="text-muted small">Staff ID: {{ $appointment->staff->id }}</div>
+                                @php
+                                    $assignedStaff = $appointment->assignedStaff ?? collect();
+                                @endphp
+                                @if($assignedStaff->isNotEmpty())
+                                    <strong>{{ $assignedStaff->first()->name }}</strong>
+                                    @if($assignedStaff->count() > 1)
+                                        <div class="text-muted small">+{{ $assignedStaff->count() - 1 }} more</div>
+                                    @endif
+                                    <div class="text-muted small">Staff IDs: {{ $assignedStaff->pluck('staff_id')->join(', ') }}</div>
                                 @else
                                     <span class="text-muted">Unassigned</span>
                                 @endif
@@ -146,7 +155,7 @@
                                     <button type="button" class="btn btn-outline-info" title="Schedule visit" onclick="openScheduleModal({{ $appointment->id }}, '{{ optional($appointment->booking_date ?? $appointment->preferred_at)->format('Y-m-d') }}', '{{ $appointment->time_slot ?? optional($appointment->preferred_at)->format('H:i') }}')">
                                         <i class="fas fa-calendar-alt"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-warning" title="Assign staff" onclick="openAssignModal({{ $appointment->id }}, '{{ $appointment->assigned_staff_id ?? '' }}', {!! json_encode($appointment->staff->name ?? '') !!})">
+                                    <button type="button" class="btn btn-outline-warning" title="Assign staff" data-bs-toggle="modal" data-bs-target="#assignStaffModal" data-appointment-id="{{ $appointment->id }}">
                                         <i class="fas fa-user-check"></i>
                                     </button>
                                     <div class="dropdown">
@@ -243,16 +252,21 @@
             </div>
             <form id="assignStaffForm" method="POST" action="">
                 @csrf
-                <div class="modal-body">
+                    <div class="modal-body">
+                    <div class="mb-3">
+                        <div><strong>Appointment:</strong> <span id="assignAppointmentLabel"></span></div>
+                        <div><strong>Branch:</strong> <span id="assignAppointmentBranch"></span></div>
+                        <div><strong>Scheduled:</strong> <span id="assignAppointmentSchedule"></span></div>
+                    </div>
                     <div class="mb-3">
                         <label for="staffSearchQuery" class="form-label">Search staff</label>
-                        <input type="search" id="staffSearchQuery" class="form-control" placeholder="Search staff by name, email, or phone">
+                        <input type="search" id="staffSearchQuery" class="form-control" placeholder="Search by name, staff ID, or phone">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Matching staff</label>
+                        <label class="form-label">Available staff</label>
                         <div id="staffSearchResults" class="list-group"></div>
                     </div>
-                    <input type="hidden" id="staffIdField" name="staff_id" value="">
+                    <div id="selectedStaffIdsContainer"></div>
                     <div id="selectedStaffInfo" class="small text-muted"></div>
                 </div>
                 <div class="modal-footer">
@@ -266,67 +280,174 @@
 
 @push('scripts')
 <script>
-    const scheduleVisitModal = new bootstrap.Modal(document.getElementById('scheduleVisitModal'));
-    const assignStaffModal = new bootstrap.Modal(document.getElementById('assignStaffModal'));
+    document.addEventListener('DOMContentLoaded', function () {
+        const scheduleVisitModal = new bootstrap.Modal(document.getElementById('scheduleVisitModal'));
+        const assignStaffModalEl = document.getElementById('assignStaffModal');
+        const assignStaffModal = new bootstrap.Modal(assignStaffModalEl);
+        const staffSearchQuery = document.getElementById('staffSearchQuery');
 
-    function openScheduleModal(appointmentId, bookingDate, timeSlot) {
-        const form = document.getElementById('scheduleVisitForm');
-        form.action = `/admin/appointments/${appointmentId}/reschedule`;
-        document.getElementById('scheduleBookingDate').value = bookingDate || '';
-        document.getElementById('scheduleTimeSlot').value = timeSlot || '';
-        scheduleVisitModal.show();
-    }
+        function openScheduleModal(appointmentId, bookingDate, timeSlot) {
+            const form = document.getElementById('scheduleVisitForm');
+            form.action = `/admin/appointments/${appointmentId}/reschedule`;
+            document.getElementById('scheduleBookingDate').value = bookingDate || '';
+            document.getElementById('scheduleTimeSlot').value = timeSlot || '';
+            scheduleVisitModal.show();
+        }
 
-    function openAssignModal(appointmentId, staffId, staffName) {
-        const form = document.getElementById('assignStaffForm');
-        form.action = `/admin/appointments/${appointmentId}/assign-staff`;
-        document.getElementById('staffIdField').value = staffId || '';
-        document.getElementById('selectedStaffInfo').innerText = staffId ? `Current staff: ${staffName} (${staffId})` : 'No staff selected yet.';
-        document.getElementById('staffSearchQuery').value = '';
-        document.getElementById('staffSearchResults').innerHTML = '';
-        document.getElementById('assignStaffSubmitButton').disabled = !staffId;
-        assignStaffModal.show();
-    }
+        window.openScheduleModal = openScheduleModal;
 
-    let staffSearchTimeout = null;
-    document.getElementById('staffSearchQuery').addEventListener('input', function () {
-        clearTimeout(staffSearchTimeout);
-        const query = this.value.trim();
-        staffSearchTimeout = setTimeout(() => searchStaff(query), 300);
-    });
-
-    function searchStaff(query) {
-        const appointmentId = document.getElementById('assignStaffForm').action.match(/appointments\/(\d+)\/assign-staff$/)?.[1];
-        if (!appointmentId) return;
-
-        fetch(`/admin/appointments/search-staff?appointment_id=${appointmentId}&q=${encodeURIComponent(query)}`, {
-            headers: {
-                'Accept': 'application/json'
+        function openAssignModal(appointmentId) {
+            const form = document.getElementById('assignStaffForm');
+            form.action = `/admin/appointments/${appointmentId}/assign-staff`;
+            if (staffSearchQuery) {
+                staffSearchQuery.value = '';
             }
-        }).then(response => response.json()).then(data => {
-            const results = document.getElementById('staffSearchResults');
-            results.innerHTML = '';
-            if (!Array.isArray(data) || data.length === 0) {
-                results.innerHTML = '<div class="list-group-item">No staff found.</div>';
+            document.getElementById('staffSearchResults').innerHTML = '<div class="list-group-item">Loading staff...</div>';
+            document.getElementById('assignAppointmentLabel').innerText = `#${appointmentId}`;
+            document.getElementById('assignAppointmentBranch').innerText = 'Loading...';
+            document.getElementById('assignAppointmentSchedule').innerText = 'Loading...';
+            document.getElementById('selectedStaffInfo').innerText = 'Select staff to assign';
+            selectedStaffIds = [];
+            updateSelectedStaffField();
+            updateSelectedInfo();
+            loadStaffForAppointment(appointmentId);
+        }
+
+        assignStaffModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const appointmentId = button?.dataset?.appointmentId;
+            if (!appointmentId) {
                 return;
             }
+            openAssignModal(appointmentId);
+        });
 
-            data.forEach(staff => {
-                const item = document.createElement('button');
-                item.type = 'button';
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = `<strong>${staff.name}</strong><br><small>ID: ${staff.id} · ${staff.phone ?? 'No phone'} · ${staff.city ?? 'No city'}</small>`;
-                item.addEventListener('click', () => {
-                    document.getElementById('staffIdField').value = staff.id;
-                    document.getElementById('selectedStaffInfo').innerText = `Selected: ${staff.name} (${staff.id})`;
-                    document.getElementById('assignStaffSubmitButton').disabled = false;
-                });
-                results.appendChild(item);
+        let staffSearchTimeout = null;
+        let selectedStaffIds = [];
+
+        if (staffSearchQuery) {
+            staffSearchQuery.addEventListener('input', function () {
+                clearTimeout(staffSearchTimeout);
+                const query = this.value.trim();
+                staffSearchTimeout = setTimeout(() => searchStaff(query), 300);
             });
-        }).catch(() => {
-            document.getElementById('staffSearchResults').innerHTML = '<div class="list-group-item text-danger">Unable to load staff.</div>';
+        }
+
+        function loadStaffForAppointment(appointmentId) {
+            fetch(`/admin/appointments/search-staff?appointment_id=${appointmentId}&q=`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => response.json()).then(data => {
+                document.getElementById('assignAppointmentBranch').innerText = data.appointment.branch || 'N/A';
+                const scheduleText = data.appointment.booking_date ? `${data.appointment.booking_date} ${data.appointment.time_slot || ''}` : 'TBD';
+                document.getElementById('assignAppointmentSchedule').innerText = scheduleText;
+                selectedStaffIds = data.assigned_staff_ids;
+                updateSelectedStaffField();
+                renderStaffResults(data.staff);
+                updateSelectedInfo();
+            }).catch(() => {
+                document.getElementById('staffSearchResults').innerHTML = '<div class="list-group-item text-danger">Unable to load staff.</div>';
+            });
+        }
+
+        function searchStaff(query) {
+            const appointmentId = document.getElementById('assignStaffForm').action.match(/appointments\/(\d+)\/assign-staff$/)?.[1];
+            if (!appointmentId) return;
+
+            fetch(`/admin/appointments/search-staff?appointment_id=${appointmentId}&q=${encodeURIComponent(query)}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => response.json()).then(data => {
+                renderStaffResults(data.staff);
+            }).catch(() => {
+                document.getElementById('staffSearchResults').innerHTML = '<div class="list-group-item text-danger">Unable to load staff.</div>';
+            });
+        }
+
+        function renderStaffResults(staff) {
+        const results = document.getElementById('staffSearchResults');
+        results.innerHTML = '';
+        if (!Array.isArray(staff) || staff.length === 0) {
+            results.innerHTML = '<div class="list-group-item">No staff found.</div>';
+            return;
+        }
+
+        staff.forEach(member => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item';
+            const checked = selectedStaffIds.includes(member.id);
+            const disabled = member.disabled;
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.disabled = disabled;
+            input.checked = checked;
+            input.className = 'form-check-input me-2';
+            input.id = `staff-checkbox-${member.id}`;
+            input.addEventListener('change', () => toggleStaffSelection(member.id));
+
+            const statusBadge = document.createElement('span');
+            statusBadge.className = 'badge float-end ' + (member.disabled ? 'bg-danger' : 'bg-success');
+            statusBadge.innerText = member.status;
+
+            const title = document.createElement('div');
+            title.innerHTML = `<strong>${member.name}</strong> <small>ID: ${member.staff_id || member.id}</small>`;
+
+            const details = document.createElement('div');
+            details.className = 'small text-muted';
+            details.innerText = `${member.branch || ''} · ${member.current_duty || 'No duty set'}`;
+
+            const reason = document.createElement('div');
+            reason.className = 'small text-danger';
+            reason.innerText = member.busy_reason || '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex align-items-start';
+            wrapper.appendChild(input);
+            const body = document.createElement('div');
+            body.appendChild(title);
+            body.appendChild(details);
+            if (member.busy_reason) {
+                body.appendChild(reason);
+            }
+            wrapper.appendChild(body);
+
+            item.appendChild(wrapper);
+            item.appendChild(statusBadge);
+            results.appendChild(item);
         });
     }
+
+    function toggleStaffSelection(staffId) {
+        const index = selectedStaffIds.indexOf(staffId);
+        if (index >= 0) {
+            selectedStaffIds.splice(index, 1);
+        } else {
+            selectedStaffIds.push(staffId);
+        }
+        updateSelectedStaffField();
+        updateSelectedInfo();
+    }
+
+    function updateSelectedStaffField() {
+        const hiddenContainer = document.getElementById('selectedStaffIdsContainer');
+        hiddenContainer.innerHTML = '';
+        selectedStaffIds.forEach(id => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'staff_ids[]';
+            hiddenInput.value = id;
+            hiddenContainer.appendChild(hiddenInput);
+        });
+    }
+
+    function updateSelectedInfo() {
+        const info = document.getElementById('selectedStaffInfo');
+        info.innerText = selectedStaffIds.length > 0 ? `Selected ${selectedStaffIds.length} staff member(s)` : 'Select staff to assign';
+        document.getElementById('assignStaffSubmitButton').disabled = selectedStaffIds.length === 0;
+    }
+    });
 </script>
 @endpush
 

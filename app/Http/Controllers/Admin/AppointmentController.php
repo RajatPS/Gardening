@@ -2,17 +2,26 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\AppointmentStaff;
 use App\Models\ServiceBooking;
+use App\Models\User;
 use App\Models\AuditLog;
 use App\Services\AppointmentLocalityService;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ServiceBooking::with('user', 'staff');
+        $query = ServiceBooking::with('user', 'staff', 'assignedStaff.branch');
+
+        $selectedBranchId = session('admin.selected_branch_id');
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -48,7 +57,7 @@ class AppointmentController extends Controller
 
     public function show($id)
     {
-        $appointment = ServiceBooking::with('user', 'staff')->findOrFail($id);
+        $appointment = ServiceBooking::with('user', 'staff', 'assignedStaff.branch')->findOrFail($id);
         $appointments = collect([$appointment]);
         $statusOptions = $this->appointmentStatusOptions();
 
@@ -76,68 +85,197 @@ class AppointmentController extends Controller
             'appointment_id' => 'required|integer|exists:service_bookings,id',
         ]);
 
-        $appointment = ServiceBooking::findOrFail($validated['appointment_id']);
-        $query = \App\Models\User::query()
+        $appointment = ServiceBooking::with('branch')->findOrFail($validated['appointment_id']);
+
+        $query = User::query()
             ->where('role', 'staff')
             ->where('status', 'active');
+
+        if ($appointment->branch_id) {
+            $query->where('branch_id', $appointment->branch_id);
+        }
 
         if (! empty($validated['q'])) {
             $query->where(function ($q) use ($validated) {
                 $q->where('name', 'like', '%' . $validated['q'] . '%')
                   ->orWhere('email', 'like', '%' . $validated['q'] . '%')
-                  ->orWhere('phone', 'like', '%' . $validated['q'] . '%');
+                  ->orWhere('phone', 'like', '%' . $validated['q'] . '%')
+                  ->orWhere('staff_id', 'like', '%' . $validated['q'] . '%');
             });
         }
 
-        $localityService = new AppointmentLocalityService();
-        $bookingCity = $localityService->resolveBookingCity($appointment->city, $appointment->address_line);
+        $candidateStaff = $query->orderBy('name')->take(50)->get();
+        $appointmentRange = $this->getAppointmentTimeRange($appointment);
+        $staffIds = $candidateStaff->pluck('id');
 
-        $staff = $query->get()->filter(function ($staffMember) use ($localityService, $bookingCity, $appointment) {
-            return $bookingCity === null || $localityService->isRelevant($staffMember->city, $bookingCity, $appointment->address_line);
-        })->take(25)->map(function ($staffMember) {
+        $assignedAppointmentIds = AppointmentStaff::whereIn('staff_id', $staffIds)
+            ->pluck('appointment_id')
+            ->unique()
+            ->values();
+
+        $otherAppointments = ServiceBooking::whereIn('id', $assignedAppointmentIds)
+            ->where('id', '!=', $appointment->id)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->get()
+            ->keyBy('id');
+
+        $staff = $candidateStaff->map(function ($staffMember) use ($appointment, $appointmentRange, $otherAppointments) {
+            $alreadyAssigned = $appointment->assignedStaff()->where('users.id', $staffMember->id)->exists();
+            $conflict = $this->findConflictingAppointment($staffMember->id, $appointment, $appointmentRange, $otherAppointments);
+
+            $status = 'Available';
+            $disabled = false;
+            $reason = null;
+
+            if ($alreadyAssigned) {
+                $status = 'Already Assigned';
+            } elseif ($staffMember->status !== 'active') {
+                $status = 'Inactive';
+                $disabled = true;
+            } elseif ($conflict !== null) {
+                $status = 'Busy';
+                $disabled = true;
+                $reason = sprintf('Appointment #%d on %s %s',
+                    $conflict->id,
+                    optional($conflict->booking_date)->format('M d, Y'),
+                    $conflict->time_slot ? 'at ' . $conflict->time_slot : ''
+                );
+            } elseif ($appointmentRange === null) {
+                $status = 'Schedule TBD';
+            }
+
             return [
                 'id' => $staffMember->id,
                 'name' => $staffMember->name,
+                'staff_id' => $staffMember->staff_id,
                 'phone' => $staffMember->phone,
                 'city' => $staffMember->city,
+                'branch' => $staffMember->branch?->name,
+                'current_duty' => $staffMember->current_duty,
+                'capabilities' => $staffMember->capabilities,
+                'status' => $status,
+                'disabled' => $disabled,
+                'already_assigned' => $alreadyAssigned,
+                'busy_reason' => $reason,
             ];
-        })->values();
+        });
 
-        return response()->json($staff);
+        return response()->json([
+            'appointment' => [
+                'id' => $appointment->id,
+                'branch' => $appointment->branch?->name,
+                'booking_date' => optional($appointment->booking_date)->format('M d, Y'),
+                'time_slot' => $appointment->time_slot,
+                'service_type' => $appointment->service_type,
+            ],
+            'staff' => $staff,
+            'assigned_staff_ids' => $appointment->assignedStaff()->pluck('users.id')->all(),
+        ]);
     }
 
     public function assignStaff(Request $request, $id)
     {
         $validated = $request->validate([
-            'staff_id' => 'required|exists:users,id'
+            'staff_ids' => 'nullable|array',
+            'staff_ids.*' => 'integer|exists:users,id',
         ]);
 
         $appointment = ServiceBooking::findOrFail($id);
-        $staff = \App\Models\User::findOrFail($validated['staff_id']);
+        $selectedIds = array_filter($validated['staff_ids'] ?? []);
 
-        if ($staff->role !== 'staff') {
-            return redirect()->back()->withErrors('The selected user is not a staff member.');
+        $eligibleStaff = User::whereIn('id', $selectedIds)
+            ->where('role', 'staff')
+            ->where('status', 'active')
+            ->where('branch_id', $appointment->branch_id)
+            ->get()
+            ->keyBy('id');
+
+        if (count($selectedIds) !== $eligibleStaff->count()) {
+            return redirect()->back()->withErrors('One or more selected staff members are not eligible for this appointment.');
         }
 
-        if ($staff->status !== 'active') {
-            return redirect()->back()->withErrors('The selected staff member is not active.');
+        $appointmentRange = $this->getAppointmentTimeRange($appointment);
+
+        foreach ($eligibleStaff as $staffMember) {
+            $conflict = $this->findConflictingAppointment($staffMember->id, $appointment, $appointmentRange);
+            if ($conflict !== null) {
+                return redirect()->back()->withErrors(sprintf('Staff %s cannot be assigned because they are busy with appointment #%d.', $staffMember->name, $conflict->id));
+            }
         }
 
-        $localityService = new AppointmentLocalityService();
-        $bookingCity = $localityService->resolveBookingCity($appointment->city, $appointment->address_line);
+        DB::transaction(function () use ($appointment, $selectedIds) {
+            $appointment->assignedStaff()->sync($selectedIds);
 
-        if ($bookingCity !== null && ! $localityService->isRelevant($staff->city, $bookingCity, $appointment->address_line)) {
-            return redirect()->back()->withErrors('The selected staff member is outside the appointment service area.');
+            $updateData = [];
+            if (count($selectedIds) > 0) {
+                $updateData['assigned_staff_id'] = $selectedIds[0];
+                if (in_array($appointment->status, ['pending', 'confirmed'], true)) {
+                    $updateData['status'] = 'assigned';
+                }
+            } else {
+                $updateData['assigned_staff_id'] = null;
+                if ($appointment->status === 'assigned') {
+                    $updateData['status'] = 'pending';
+                }
+            }
+
+            if (! empty($updateData)) {
+                $appointment->update($updateData);
+            }
+        });
+
+        $this->logAudit('Appointment Staff Updated', 'appointments', $id, null, json_encode($selectedIds));
+
+        return redirect()->back()->with('success', 'Appointment staff assignments updated successfully');
+    }
+
+    private function getAppointmentTimeRange(ServiceBooking $appointment): ?array
+    {
+        if (! $appointment->booking_date || empty($appointment->time_slot)) {
+            return null;
         }
 
-        $appointment->update([
-            'assigned_staff_id' => $validated['staff_id'],
-            'status' => in_array($appointment->status, ['pending', 'confirmed'], true) ? 'assigned' : $appointment->status,
-        ]);
+        try {
+            $start = Carbon::parse($appointment->booking_date->format('Y-m-d') . ' ' . $appointment->time_slot);
+        } catch (\Throwable $e) {
+            return null;
+        }
 
-        $this->logAudit('Staff Assigned', 'appointments', $id, null, $validated['staff_id']);
+        $end = $start->copy()->addHour();
 
-        return redirect()->back()->with('success', 'Staff assigned successfully');
+        return ['start' => $start, 'end' => $end];
+    }
+
+    private function findConflictingAppointment(int $staffId, ServiceBooking $currentAppointment, ?array $currentRange, $otherAppointments = null): ?ServiceBooking
+    {
+        $query = AppointmentStaff::where('staff_id', $staffId)
+            ->pluck('appointment_id');
+
+        $appointments = ServiceBooking::whereIn('id', $query)
+            ->where('id', '!=', $currentAppointment->id)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->get();
+
+        if ($otherAppointments !== null) {
+            $appointments = $appointments->merge($otherAppointments)->unique('id');
+        }
+
+        if ($currentRange === null) {
+            return null;
+        }
+
+        foreach ($appointments as $existingAppointment) {
+            $range = $this->getAppointmentTimeRange($existingAppointment);
+            if ($range === null) {
+                continue;
+            }
+
+            if ($currentRange['start']->lt($range['end']) && $range['start']->lt($currentRange['end'])) {
+                return $existingAppointment;
+            }
+        }
+
+        return null;
     }
 
     public function reschedule(Request $request, $id)

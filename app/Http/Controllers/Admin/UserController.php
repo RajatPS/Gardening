@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
+use App\Models\Branch;
 use App\Models\AuditLog;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
@@ -12,7 +13,11 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with('branch');
+        $selectedBranchId = session('admin.selected_branch_id');
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -50,19 +55,24 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('branch')->findOrFail($id);
         $orders = $user->orders()->latest()->paginate(10);
         $appointments = $user->appointments()->latest()->paginate(10);
         $subscriptions = $user->subscriptions()->latest()->paginate(10);
         $payments = $user->payments()->latest()->paginate(10);
+        $branches = Branch::orderBy('name')->get();
 
-        return view('admin.user-management', compact('user', 'orders', 'appointments', 'subscriptions', 'payments'));
+        return view('admin.user-management', compact('user', 'orders', 'appointments', 'subscriptions', 'payments', 'branches'))
+            ->with('showMode', true);
     }
 
     public function edit($id)
     {
-        $user = User::findOrFail($id);
-        return view('admin.user-management', compact('user'));
+        $user = User::with('branch')->findOrFail($id);
+        $branches = Branch::orderBy('name')->get();
+
+        return view('admin.user-management', compact('user', 'branches'))
+            ->with('editMode', true);
     }
 
     public function update(Request $request, $id)
@@ -74,6 +84,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:500',
+            'branch_id' => 'nullable|exists:branches,id',
             'status' => 'required|in:active,suspended',
         ]);
 

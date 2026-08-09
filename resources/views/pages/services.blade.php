@@ -40,6 +40,14 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">PIN Code</label>
+                            <input type="text" name="pin_code" value="{{ old('pin_code') }}" maxlength="6" pattern="\d{6}" inputmode="numeric" placeholder="Enter 6-digit PIN code" class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
+                            @error('pin_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
                     <div id="dynamicFields" class="mt-6 grid gap-4"></div>

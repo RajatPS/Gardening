@@ -42,6 +42,11 @@ class LocationDistanceService
         return $distance !== null && $distance <= $radiusKm;
     }
 
+    public function geocodeLocation(string $location): ?array
+    {
+        return $this->geocode($location);
+    }
+
     private function geocode(string $location): ?array
     {
         $cacheKey = 'geocode:' . md5(strtolower(trim($location)));

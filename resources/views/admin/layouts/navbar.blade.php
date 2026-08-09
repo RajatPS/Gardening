@@ -9,6 +9,22 @@
         </div>
 
         <ul class="navbar-nav ms-auto d-flex align-items-center flex-row">
+            <!-- Branch Selector -->
+            <li class="nav-item d-flex align-items-center me-3">
+                <form method="POST" action="{{ route('admin.branch.select') }}" class="d-flex align-items-center admin-branch-selector-form">
+                    @csrf
+                    <label class="me-2 mb-0 d-none d-md-inline branch-selector-label">Branch:</label>
+                    <div class="admin-branch-selector-wrapper">
+                        <select class="form-select form-select-sm admin-branch-selector" name="branch_id" onchange="this.form.submit()">
+                            <option value="" {{ empty($adminSelectedBranch) ? 'selected' : '' }}>All Branches</option>
+                            @foreach($adminBranches ?? [] as $branch)
+                                <option value="{{ $branch->id }}" {{ optional($adminSelectedBranch)->id == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </li>
+
             <!-- Notifications -->
             @php
                 $notificationItems = collect();

@@ -26,6 +26,13 @@ class DatabaseSeeder extends Seeder
             'role' => 'customer',
             'status' => 'active',
             'user_type' => 'customer',
+            'address' => 'Near Madharihat Market, NH31',
+            'house_no' => '12A',
+            'street' => 'NH31 Service Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
 
         User::updateOrCreate([
@@ -36,6 +43,13 @@ class DatabaseSeeder extends Seeder
             'role' => 'admin',
             'status' => 'active',
             'user_type' => 'admin',
+            'address' => 'Branch Office, Near Madharihat Market',
+            'house_no' => '1',
+            'street' => 'NH31 Main Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
 
         User::updateOrCreate([
@@ -46,7 +60,34 @@ class DatabaseSeeder extends Seeder
             'role' => 'customer',
             'status' => 'active',
             'user_type' => 'customer',
+            'address' => 'Eden Garden Street, Near Madharihat Bus Stand',
+            'house_no' => '14B',
+            'street' => 'Madharihat Bus Stand Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
+
+        $madharihat = Branch::updateOrCreate(
+            ['name' => 'Madharihat'],
+            [
+                'name' => 'Madharihat',
+                'address' => 'Near Madharihat Market, NH31, West Bengal 736135',
+                'latitude' => 26.5013,
+                'longitude' => 89.3485,
+            ]
+        );
+
+        $kolkata = Branch::updateOrCreate(
+            ['name' => 'Kolkata'],
+            [
+                'name' => 'Kolkata',
+                'address' => 'Eden Gardens Area, Kolkata, West Bengal 700021',
+                'latitude' => 22.5726,
+                'longitude' => 88.3639,
+            ]
+        );
 
         User::updateOrCreate([
             'email' => 's1@gmail.com',
@@ -56,6 +97,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'staff',
             'status' => 'active',
             'user_type' => 'staff',
+            'branch_id' => $madharihat->id,
+            'address' => 'Near Madharihat Market, NH31',
+            'house_no' => '9',
+            'street' => 'NH31 Service Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
 
         User::updateOrCreate([
@@ -66,6 +115,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'staff',
             'status' => 'active',
             'user_type' => 'staff',
+            'branch_id' => $madharihat->id,
+            'address' => 'Opposite Madharihat Bazaar',
+            'house_no' => '11',
+            'street' => 'Bazaar Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
 
         User::updateOrCreate([
@@ -76,10 +133,185 @@ class DatabaseSeeder extends Seeder
             'role' => 'staff',
             'status' => 'active',
             'user_type' => 'staff',
+            'branch_id' => $madharihat->id,
+            'address' => 'EV Street, Close to Madharihat Station',
+            'house_no' => '18',
+            'street' => 'Station Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
         ]);
 
-        Branch::updateOrCreate(['name' => 'Madharihat'], ['name' => 'Madharihat']);
-        Branch::updateOrCreate(['name' => 'Kolkata'], ['name' => 'Kolkata']);
+        $madharihat = Branch::updateOrCreate(
+            ['name' => 'Madharihat'],
+            [
+                'name' => 'Madharihat',
+                'address' => 'Near Madharihat Market, NH31, West Bengal 736135',
+                'latitude' => 26.5013,
+                'longitude' => 89.3485,
+            ]
+        );
+
+        $kolkata = Branch::updateOrCreate(
+            ['name' => 'Kolkata'],
+            [
+                'name' => 'Kolkata',
+                'address' => 'Eden Gardens Area, Kolkata, West Bengal 700021',
+                'latitude' => 22.5726,
+                'longitude' => 88.3639,
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'ravi.kumar@example.com'],
+            [
+                'name' => 'Ravi Kumar',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $madharihat->id,
+                'staff_id' => 'STF-M001',
+                'capabilities' => ['Appointment Service', 'Delivery'],
+                'current_duty' => 'Appointment Service',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'amit.das@example.com'],
+            [
+                'name' => 'Amit Das',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $madharihat->id,
+                'staff_id' => 'STF-M002',
+                'capabilities' => ['Appointment Service', 'Installation'],
+                'current_duty' => 'Appointment Service',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'suman.roy@example.com'],
+            [
+                'name' => 'Suman Roy',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $madharihat->id,
+                'staff_id' => 'STF-M003',
+                'capabilities' => ['Maintenance', 'Inspection'],
+                'current_duty' => 'Maintenance',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'rahul.sharma@example.com'],
+            [
+                'name' => 'Rahul Sharma',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $madharihat->id,
+                'staff_id' => 'STF-M004',
+                'capabilities' => ['Delivery', 'Installation'],
+                'current_duty' => 'Delivery',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'priya.das@example.com'],
+            [
+                'name' => 'Priya Das',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $madharihat->id,
+                'staff_id' => 'STF-M005',
+                'capabilities' => ['Inspection', 'Maintenance'],
+                'current_duty' => 'Inspection',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'arjun.roy@example.com'],
+            [
+                'name' => 'Arjun Roy',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $kolkata->id,
+                'staff_id' => 'STF-K001',
+                'capabilities' => ['Appointment Service', 'Delivery'],
+                'current_duty' => 'Appointment Service',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'sourav.das@example.com'],
+            [
+                'name' => 'Sourav Das',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $kolkata->id,
+                'staff_id' => 'STF-K002',
+                'capabilities' => ['Installation', 'Maintenance'],
+                'current_duty' => 'Installation',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'ankit.kumar@example.com'],
+            [
+                'name' => 'Ankit Kumar',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $kolkata->id,
+                'staff_id' => 'STF-K003',
+                'capabilities' => ['Appointment Service', 'Inspection'],
+                'current_duty' => 'Appointment Service',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'neha.roy@example.com'],
+            [
+                'name' => 'Neha Roy',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $kolkata->id,
+                'staff_id' => 'STF-K004',
+                'capabilities' => ['Delivery', 'Maintenance'],
+                'current_duty' => 'Delivery',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'puja.das@example.com'],
+            [
+                'name' => 'Puja Das',
+                'password' => bcrypt('1122334455'),
+                'role' => 'staff',
+                'status' => 'active',
+                'user_type' => 'staff',
+                'branch_id' => $kolkata->id,
+                'staff_id' => 'STF-K005',
+                'capabilities' => ['Inspection', 'Appointment Service'],
+                'current_duty' => 'Inspection',
+            ]
+        );
 
         Product::query()->upsert([
             [

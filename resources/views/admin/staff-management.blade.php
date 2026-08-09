@@ -11,6 +11,140 @@
     <p class="text-muted">Manage your staff members</p>
 </div>
 
+@if(isset($createMode) || isset($editMode) || isset($showMode))
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                @if(isset($createMode)) Add Staff Member @endif
+                @if(isset($editMode)) Edit Staff Member @endif
+                @if(isset($showMode)) Staff Details @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            @if(isset($createMode) || isset($editMode))
+                <form method="POST" action="{{ isset($editMode) ? route('admin.staff.update', $staff) : route('admin.staff.store') }}">
+                    @csrf
+                    @if(isset($editMode))
+                        @method('PUT')
+                    @endif
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" value="{{ old('name', $staff->name ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ old('email', $staff->email ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $staff->phone ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ old('city', $staff->city ?? '') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select name="branch_id" class="form-select">
+                                <option value="">Select branch</option>
+                                @foreach($branches ?? [] as $branch)
+                                    <option value="{{ $branch->id }}" {{ old('branch_id', $staff->branch_id ?? '') == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Staff ID</label>
+                            <input type="text" name="staff_id" class="form-control" value="{{ old('staff_id', $staff->staff_id ?? '') }}">
+                            <div class="form-text">Unique ID such as STF-M001.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Capabilities</label>
+                            <input type="text" name="capabilities" class="form-control" value="{{ old('capabilities', isset($staff) && is_array($staff->capabilities) ? implode(', ', $staff->capabilities) : ($staff->capabilities ?? '')) }}">
+                            <div class="form-text">Comma-separated list of capabilities.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Current Duty</label>
+                            <input type="text" name="current_duty" class="form-control" value="{{ old('current_duty', $staff->current_duty ?? '') }}">
+                        </div>
+                        @if(isset($createMode))
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" name="password" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Confirm Password</label>
+                                <input type="password" name="password_confirmation" class="form-control" required>
+                            </div>
+                        @endif
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select" required>
+                                <option value="active" {{ old('status', $staff->status ?? '') === 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="suspended" {{ old('status', $staff->status ?? '') === 'suspended' ? 'selected' : '' }}>Suspended</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ isset($editMode) ? 'Update Staff' : 'Create Staff' }}</button>
+                    <a href="{{ route('admin.staff.index') }}" class="btn btn-secondary ms-2">Back to list</a>
+                </form>
+            @elseif(isset($showMode))
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Name</strong>
+                        <div>{{ $staff->name }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Email</strong>
+                        <div>{{ $staff->email }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Phone</strong>
+                        <div>{{ $staff->phone }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Branch</strong>
+                        <div>{{ $staff->branch?->name ?? 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Staff ID</strong>
+                        <div>{{ $staff->staff_id ?? 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Status</strong>
+                        <div>{{ ucfirst($staff->status) }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Current Duty</strong>
+                        <div>{{ $staff->current_duty ?? 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Capabilities</strong>
+                        <div>{{ is_array($staff->capabilities) ? implode(', ', $staff->capabilities) : ($staff->capabilities ?? 'N/A') }}</div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Assigned Appointments</h6>
+                    @if($assignedTasks->isEmpty())
+                        <div class="alert alert-info mb-0">No assigned appointments.</div>
+                    @else
+                        <ul class="list-group">
+                            @foreach($assignedTasks as $task)
+                                <li class="list-group-item">Appointment #{{ $task->id }} — {{ ucfirst($task->service_type) }} — {{ optional($task->booking_date)->format('M d, Y') }} {{ $task->time_slot }}</li>
+                            @endforeach
+                        </ul>
+                        <div class="mt-3">{{ $assignedTasks->links() }}</div>
+                    @endif
+                </div>
+                <div class="mt-4">
+                    <a href="{{ route('admin.staff.edit', $staff) }}" class="btn btn-warning">Edit Staff</a>
+                    <a href="{{ route('admin.staff.index') }}" class="btn btn-secondary">Back to list</a>
+                </div>
+            @endif
+        </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <div class="row align-items-center">

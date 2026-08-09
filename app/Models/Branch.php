@@ -9,6 +9,9 @@ class Branch extends Model
 {
     protected $fillable = [
         'name',
+        'address',
+        'latitude',
+        'longitude',
     ];
 
     public function staff(): HasMany

@@ -18,8 +18,12 @@ class ServiceBooking extends Model
         'booking_date',
         'time_slot',
         'assigned_staff_id',
+        'branch_id',
         'address_line',
         'city',
+        'pin_code',
+        'latitude',
+        'longitude',
         'customer_notes',
         'uploaded_images',
     ];
@@ -28,6 +32,8 @@ class ServiceBooking extends Model
         'preferred_at' => 'datetime',
         'booking_date' => 'datetime',
         'uploaded_images' => 'array',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function user(): BelongsTo

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Branch;
 use App\Models\User;
 use App\Models\AuditLog;
 use Illuminate\Routing\Controller;
@@ -12,6 +13,10 @@ class StaffController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'staff');
+        $selectedBranchId = session('admin.selected_branch_id');
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -19,7 +24,8 @@ class StaffController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('staff_id', 'like', "%{$search}%");
             });
         }
 
@@ -41,9 +47,14 @@ class StaffController extends Controller
 
     public function create()
     {
-        $staff = User::where('role', 'staff')->paginate(15);
+        $branches = Branch::orderBy('name')->get();
+        $staff = User::where('role', 'staff')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('branch_id', $selectedBranchId);
+            })
+            ->paginate(15);
 
-        return view('admin.staff-management', compact('staff'))->with('createMode', true);
+        return view('admin.staff-management', compact('staff', 'branches'))->with('createMode', true);
     }
 
     public function store(Request $request)
@@ -53,12 +64,17 @@ class StaffController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'required|string|max:20',
             'city' => 'nullable|string|max:255',
+            'branch_id' => 'nullable|exists:branches,id',
+            'staff_id' => 'nullable|string|max:100|unique:users,staff_id',
+            'capabilities' => 'nullable|string',
+            'current_duty' => 'nullable|string|max:255',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:staff',
             'status' => 'required|in:active,suspended',
         ]);
 
         $validated['password'] = bcrypt($validated['password']);
+        $validated['capabilities'] = $validated['capabilities'] ? array_map('trim', explode(',', $validated['capabilities'])) : null;
         $user = User::create($validated);
 
         $this->logAudit('Staff Created', 'users', $user->id, null, $validated);
@@ -70,17 +86,27 @@ class StaffController extends Controller
     {
         $staff = User::findOrFail($id);
         $assignedTasks = $staff->assignedTasks()->paginate(10);
-        $staffList = User::where('role', 'staff')->paginate(15);
+        $staffList = User::where('role', 'staff')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('branch_id', $selectedBranchId);
+            })
+            ->paginate(15);
+        $branches = Branch::orderBy('name')->get();
 
-        return view('admin.staff-management', compact('staff', 'assignedTasks', 'staffList'))->with('showMode', true);
+        return view('admin.staff-management', compact('staff', 'assignedTasks', 'staffList', 'branches'))->with('showMode', true);
     }
 
     public function edit($id)
     {
         $staff = User::findOrFail($id);
-        $staffList = User::where('role', 'staff')->paginate(15);
+        $staffList = User::where('role', 'staff')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('branch_id', $selectedBranchId);
+            })
+            ->paginate(15);
+        $branches = Branch::orderBy('name')->get();
 
-        return view('admin.staff-management', compact('staff', 'staffList'))->with('editMode', true);
+        return view('admin.staff-management', compact('staff', 'staffList', 'branches'))->with('editMode', true);
     }
 
     public function update(Request $request, $id)
@@ -92,9 +118,14 @@ class StaffController extends Controller
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|max:20',
             'city' => 'nullable|string|max:255',
+            'branch_id' => 'nullable|exists:branches,id',
+            'staff_id' => 'nullable|string|max:100|unique:users,staff_id,' . $id,
+            'capabilities' => 'nullable|string',
+            'current_duty' => 'nullable|string|max:255',
             'status' => 'required|in:active,suspended',
         ]);
 
+        $validated['capabilities'] = $validated['capabilities'] ? array_map('trim', explode(',', $validated['capabilities'])) : null;
         $staff->update($validated);
 
         $this->logAudit('Staff Updated', 'users', $staff->id, null, $validated);

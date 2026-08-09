@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,11 +27,26 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->booted(function () {
-            /** @var Request $request */
-            $request = $this->app['request'];
+        View::composer('admin.*', function ($view) {
+            $request = request();
 
             URL::forceRootUrl($this->resolveRootUrl($request));
+
+            if ($request->is('admin*')) {
+                $branches = Branch::orderBy('name')->get();
+                $selectedBranchId = session('admin.selected_branch_id');
+                $selectedBranch = $selectedBranchId ? Branch::find($selectedBranchId) : null;
+
+                if ($selectedBranchId && ! $selectedBranch) {
+                    session()->forget('admin.selected_branch_id');
+                    $selectedBranch = null;
+                }
+
+                $view->with([
+                    'adminBranches' => $branches,
+                    'adminSelectedBranch' => $selectedBranch,
+                ]);
+            }
         });
     }
 
