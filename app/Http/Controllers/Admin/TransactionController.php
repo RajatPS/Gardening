@@ -71,7 +71,16 @@ class TransactionController extends Controller
         $user = DB::table('users')->where('id', $transaction->user_id)->first();
         $order = DB::table('orders')->where('id', $transaction->order_id)->first();
 
-        return view('admin.transaction-management', compact('transaction', 'user', 'order'));
+        // Provide transactions list for the management view
+        $query = DB::table('transactions')
+            ->join('users', 'transactions.user_id', '=', 'users.id')
+            ->join('orders', 'transactions.order_id', '=', 'orders.id')
+            ->select('transactions.*', 'users.name as user_name', 'orders.order_number')
+            ->orderBy('transactions.created_at', 'desc');
+
+        $transactions = $query->paginate(15);
+
+        return view('admin.transaction-management', compact('transaction', 'user', 'order', 'transactions'))->with('showMode', true);
     }
 
     public function destroy($id)

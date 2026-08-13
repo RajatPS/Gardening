@@ -81,6 +81,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup tooltips
     setupTooltips();
+
+    // Setup admin detail modal triggers
+    registerAdminDetailModal();
 });
 
 // Perform global search
@@ -111,6 +114,82 @@ function setupPagination() {
     paginationLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             // Preserve filters and sorting
+        });
+    });
+}
+
+function registerAdminDetailModal() {
+    document.body.addEventListener('click', function(event) {
+        const button = event.target.closest('[data-admin-detail-url]');
+        if (!button) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const url = button.dataset.adminDetailUrl;
+        if (!url) {
+            return;
+        }
+
+        const modalElement = document.getElementById('adminDetailModal');
+        if (!modalElement) {
+            window.location.href = url;
+            return;
+        }
+
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true
+        });
+        const modalBody = modalElement.querySelector('.modal-body');
+        const modalTitle = modalElement.querySelector('.modal-title');
+
+        modalTitle.textContent = 'Loading details...';
+        modalBody.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 mb-0">Loading details...</p>
+            </div>
+        `;
+
+        modal.show();
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Unable to load details.');
+            }
+            return response.text();
+        })
+        .then(html => {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const detailContent = temp.querySelector('#admin-detail-content');
+            const detailTitle = temp.querySelector('#admin-detail-title');
+
+            if (detailContent) {
+                modalBody.innerHTML = detailContent.innerHTML;
+            } else {
+                modalBody.innerHTML = html;
+            }
+
+            modalTitle.textContent = detailTitle ? detailTitle.textContent.trim() || 'Details' : 'Details';
+        })
+        .catch(() => {
+            modalBody.innerHTML = `
+                <div class="alert alert-danger mb-0">
+                    Unable to load details. Please try again.
+                </div>
+            `;
+            modalTitle.textContent = 'Error';
         });
     });
 }

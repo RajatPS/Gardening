@@ -50,7 +50,7 @@ class AppointmentController extends Controller
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
-        $appointments = $query->paginate(15);
+        $appointments = $query->paginate(15)->appends($request->query());
 
         return view('admin.appointment-management', compact('appointments'));
     }
@@ -58,10 +58,24 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = ServiceBooking::with('user', 'staff', 'assignedStaff.branch')->findOrFail($id);
-        $appointments = collect([$appointment]);
         $statusOptions = $this->appointmentStatusOptions();
 
-        return view('admin.appointment-management', compact('appointments', 'appointment', 'statusOptions'));
+        $query = ServiceBooking::with('user', 'staff', 'assignedStaff.branch');
+        $selectedBranchId = session('admin.selected_branch_id');
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
+        }
+        $allowedSorts = ['booking_date', 'status', 'service_type', 'created_at'];
+        $sortBy = request()->input('sort_by', 'booking_date');
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'booking_date';
+        }
+        $sortOrder = strtolower(request()->input('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        $appointments = $query->paginate(15);
+
+        return view('admin.appointment-management', compact('appointments', 'appointment', 'statusOptions'))->with('showMode', true);
     }
 
     public function updateStatus(Request $request, $id)
@@ -93,6 +107,10 @@ class AppointmentController extends Controller
 
         if ($appointment->branch_id) {
             $query->where('branch_id', $appointment->branch_id);
+        } elseif (! empty($appointment->city)) {
+            $query->where(function ($query) use ($appointment) {
+                $query->where('city', 'like', '%' . $appointment->city . '%');
+            });
         }
 
         if (! empty($validated['q'])) {
@@ -113,7 +131,14 @@ class AppointmentController extends Controller
             ->unique()
             ->values();
 
-        $otherAppointments = ServiceBooking::whereIn('id', $assignedAppointmentIds)
+        $assignedDirectIds = ServiceBooking::whereIn('assigned_staff_id', $staffIds)
+            ->pluck('id')
+            ->unique()
+            ->values();
+
+        $allAssignedAppointmentIds = $assignedAppointmentIds->merge($assignedDirectIds)->unique()->values();
+
+        $otherAppointments = ServiceBooking::whereIn('id', $allAssignedAppointmentIds)
             ->where('id', '!=', $appointment->id)
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->get()
@@ -186,7 +211,9 @@ class AppointmentController extends Controller
         $eligibleStaff = User::whereIn('id', $selectedIds)
             ->where('role', 'staff')
             ->where('status', 'active')
-            ->where('branch_id', $appointment->branch_id)
+            ->when($appointment->branch_id, function ($query) use ($appointment) {
+                $query->where('branch_id', $appointment->branch_id);
+            })
             ->get()
             ->keyBy('id');
 

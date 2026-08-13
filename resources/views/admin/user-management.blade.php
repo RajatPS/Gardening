@@ -8,12 +8,17 @@
     <p class="text-muted">Manage all users in the system</p>
 </div>
 
+@php
+    $users = $users ?? collect();
+@endphp
+
 @if(isset($showMode) || isset($editMode))
+    <div id="admin-detail-content">
     <div class="card mb-4">
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col">
-                    <h5 class="card-title mb-0">
+                    <h5 class="card-title mb-0" id="admin-detail-title">
                         @if(isset($editMode)) Edit User @else User Details @endif
                     </h5>
                 </div>
@@ -41,6 +46,10 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
                             <input type="text" name="phone" class="form-control" value="{{ old('phone', $user->phone ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">PIN Code</label>
+                            <input type="text" name="pincode" class="form-control" value="{{ old('pincode', $user->pincode ?? '') }}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Branch</label>
@@ -179,9 +188,6 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.users.show', $user) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-outline-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -229,9 +235,9 @@
         </div>
 
         <!-- Pagination -->
-        <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-3">
             <p class="text-muted mb-0">Showing {{ $users->count() }} of {{ $users->total() }} users</p>
-            {{ $users->links() }}
+            {{ $users->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>

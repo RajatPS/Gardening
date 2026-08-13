@@ -50,6 +50,27 @@ class AppointmentLocalityService
         return ! empty(array_intersect($staffCluster, $appointmentCluster));
     }
 
+    public function areLocationsWithinRadius(array $from, array $to, int $radiusKm = 150): bool
+    {
+        if (empty($from['lat']) || empty($from['lon']) || empty($to['lat']) || empty($to['lon'])) {
+            return false;
+        }
+
+        $earthRadiusKm = 6371;
+        $latFrom = deg2rad((float) $from['lat']);
+        $lonFrom = deg2rad((float) $from['lon']);
+        $latTo = deg2rad((float) $to['lat']);
+        $lonTo = deg2rad((float) $to['lon']);
+
+        $deltaLat = $latTo - $latFrom;
+        $deltaLon = $lonTo - $lonFrom;
+
+        $a = sin($deltaLat / 2) ** 2 + cos($latFrom) * cos($latTo) * sin($deltaLon / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return ($earthRadiusKm * $c) <= $radiusKm;
+    }
+
     private function normalizeForComparison(string $city): string
     {
         $s = mb_strtolower($city);

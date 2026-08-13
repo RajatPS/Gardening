@@ -132,7 +132,9 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        return view('admin.product-management', compact('product'));
+        $products = Product::orderBy('created_at', 'desc')->paginate(15);
+
+        return view('admin.product-management', compact('product', 'products'))->with('showMode', true);
     }
 
     public function edit($id)

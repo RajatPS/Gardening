@@ -39,8 +39,8 @@ Route::prefix('admin')->group(function () {
         // User Management
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('admin.users.index');
-            Route::get('/{id}', [UserController::class, 'show'])->name('admin.users.show');
-            Route::get('/{id}/edit', [UserController::class, 'edit'])->name('admin.users.edit');
+            Route::get('/{id}/edit', [UserController::class, 'edit'])->whereNumber('id')->name('admin.users.edit');
+            Route::get('/{id}', [UserController::class, 'show'])->whereNumber('id')->name('admin.users.show');
             Route::put('/{id}', [UserController::class, 'update'])->name('admin.users.update');
             Route::post('/{id}/activate', [UserController::class, 'activate'])->name('admin.users.activate');
             Route::post('/{id}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
@@ -51,8 +51,8 @@ Route::prefix('admin')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->name('admin.staff.index');
             Route::get('create', [StaffController::class, 'create'])->name('admin.staff.create');
             Route::post('/', [StaffController::class, 'store'])->name('admin.staff.store');
-            Route::get('/{id}', [StaffController::class, 'show'])->name('admin.staff.show');
-            Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('admin.staff.edit');
+            Route::get('/{id}/edit', [StaffController::class, 'edit'])->whereNumber('id')->name('admin.staff.edit');
+            Route::get('/{id}', [StaffController::class, 'show'])->whereNumber('id')->name('admin.staff.show');
             Route::put('/{id}', [StaffController::class, 'update'])->name('admin.staff.update');
             Route::post('/{id}/suspend', [StaffController::class, 'suspend'])->name('admin.staff.suspend');
             Route::post('/{id}/activate', [StaffController::class, 'activate'])->name('admin.staff.activate');
@@ -89,11 +89,11 @@ Route::prefix('admin')->group(function () {
         // Appointment Management
         Route::prefix('appointments')->group(function () {
             Route::get('/', [AppointmentController::class, 'index'])->name('admin.appointments.index');
-            Route::get('/{id}', [AppointmentController::class, 'show'])->name('admin.appointments.show');
+            Route::get('/search-staff', [AppointmentController::class, 'searchStaff'])->name('admin.appointments.search-staff');
+            Route::get('/{id}', [AppointmentController::class, 'show'])->whereNumber('id')->name('admin.appointments.show');
             Route::post('/{id}/assign-staff', [AppointmentController::class, 'assignStaff'])->name('admin.appointments.assign-staff');
             Route::post('/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('admin.appointments.reschedule');
             Route::post('/{id}/update-status', [AppointmentController::class, 'updateStatus'])->name('admin.appointments.update-status');
-            Route::get('/search-staff', [AppointmentController::class, 'searchStaff'])->name('admin.appointments.search-staff');
             Route::post('/{id}/complete', [AppointmentController::class, 'complete'])->name('admin.appointments.complete');
             Route::post('/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
             Route::delete('/{id}', [AppointmentController::class, 'destroy'])->name('admin.appointments.destroy');

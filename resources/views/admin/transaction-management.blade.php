@@ -8,6 +8,40 @@
     <p class="text-muted">View all payment transactions</p>
 </div>
 
+@if(isset($showMode) && isset($transaction))
+    <div id="admin-detail-content">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="card-title mb-0" id="admin-detail-title">Transaction Details</h5>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ route('admin.transactions.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to transactions
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p><strong>Transaction ID:</strong> {{ $transaction->transaction_id ?? 'N/A' }}</p>
+                    <p><strong>User:</strong> {{ $user->name ?? 'N/A' }} (ID: {{ $transaction->user_id }})</p>
+                    <p><strong>Order:</strong> #{{ $order->order_number ?? 'N/A' }} (ID: {{ $transaction->order_id }})</p>
+                    <p><strong>Method:</strong> {{ ucfirst($transaction->payment_gateway ?? $transaction->payment_method ?? 'N/A') }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h4>₹{{ number_format($transaction->amount ?? 0, 2) }}</h4>
+                    <p class="text-muted">Status: {{ ucfirst($transaction->status ?? 'N/A') }}</p>
+                    <p class="text-muted">Date: {{ optional($transaction->created_at)->format('M d, Y H:i') ?? 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Transaction Records</h5>
@@ -88,7 +122,7 @@
                             <td>{{ $transaction->created_at ? \Carbon\Carbon::parse($transaction->created_at)->format('M d, Y H:i') : 'N/A' }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.transactions.show', $transaction->id) }}" class="btn btn-outline-primary">
+                                    <a href="{{ route('admin.transactions.show', $transaction->id) }}" data-admin-detail-url="{{ route('admin.transactions.show', $transaction->id) }}" class="btn btn-outline-primary admin-detail-trigger">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                         <form method="POST" action="{{ route('admin.transactions.destroy', $transaction->id) }}" class="d-inline">

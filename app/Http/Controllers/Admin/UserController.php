@@ -48,7 +48,7 @@ class UserController extends Controller
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination
-        $users = $query->paginate(15);
+        $users = $query->paginate(15)->withQueryString();
 
         return view('admin.user-management', compact('users'));
     }
@@ -61,8 +61,14 @@ class UserController extends Controller
         $subscriptions = $user->subscriptions()->latest()->paginate(10);
         $payments = $user->payments()->latest()->paginate(10);
         $branches = Branch::orderBy('name')->get();
+        $users = User::with('branch')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('branch_id', $selectedBranchId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
-        return view('admin.user-management', compact('user', 'orders', 'appointments', 'subscriptions', 'payments', 'branches'))
+        return view('admin.user-management', compact('user', 'orders', 'appointments', 'subscriptions', 'payments', 'branches', 'users'))
             ->with('showMode', true);
     }
 
@@ -70,8 +76,14 @@ class UserController extends Controller
     {
         $user = User::with('branch')->findOrFail($id);
         $branches = Branch::orderBy('name')->get();
+        $users = User::with('branch')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('branch_id', $selectedBranchId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
-        return view('admin.user-management', compact('user', 'branches'))
+        return view('admin.user-management', compact('user', 'branches', 'users'))
             ->with('editMode', true);
     }
 
@@ -84,6 +96,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:500',
+            'pincode' => 'nullable|string|max:20',
             'branch_id' => 'nullable|exists:branches,id',
             'status' => 'required|in:active,suspended',
         ]);

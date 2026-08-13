@@ -8,6 +8,53 @@
     <p class="text-muted">Manage all customer orders</p>
 </div>
 
+@if(isset($showMode) && isset($order))
+    <div id="admin-detail-content">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="card-title mb-0" id="admin-detail-title">Order Details</h5>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to orders
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>Order #{{ $order->order_number }}</h5>
+                    <p><strong>Customer:</strong> {{ $customer->name ?? 'N/A' }} (ID: {{ $order->user_id }})</p>
+                    <p><strong>Status:</strong> {{ ucfirst($order->status) ?? 'N/A' }} | <strong>Payment:</strong> {{ ucfirst($order->payment_status ?? 'N/A') }}</p>
+                    <p><strong>Shipping Address:</strong> {{ $order->shipping_address ?? 'N/A' }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h4>₹{{ number_format($order->total_amount ?? 0, 2) }}</h4>
+                    <p class="text-muted">Placed: {{ optional($order->created_at)->format('M d, Y') ?? 'N/A' }}</p>
+                </div>
+            </div>
+
+            <hr>
+            <h6>Items</h6>
+            @if(isset($items) && count($items) > 0)
+                <ul class="list-group">
+                    @foreach($items as $item)
+                        <li class="list-group-item">
+                            {{ $item->product_name ?? 'Product' }} — Qty: {{ $item->quantity }} — ₹{{ number_format($item->price, 2) }}
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <div class="alert alert-info">No items found for this order.</div>
+            @endif
+        </div>
+    </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Orders List</h5>
@@ -93,7 +140,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-primary">
+                                    <a href="{{ route('admin.orders.show', $order->id) }}" data-admin-detail-url="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-primary admin-detail-trigger">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <a href="{{ route('admin.orders.invoice', $order->id) }}" class="btn btn-outline-info">
@@ -121,29 +168,8 @@
                                             <li>
                                                 <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
                                                     @csrf
-                                                    <input type="hidden" name="status" value="shipped">
-                                                    <button type="submit" class="dropdown-item">Shipped</button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
-                                                    @csrf
-                                                    <input type="hidden" name="status" value="out_for_delivery">
-                                                    <button type="submit" class="dropdown-item">Out for Delivery</button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
-                                                    @csrf
-                                                    <input type="hidden" name="status" value="delivered">
-                                                    <button type="submit" class="dropdown-item">Order Successful</button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="m-0">
-                                                    @csrf
                                                     <input type="hidden" name="status" value="cancelled">
-                                                    <button type="submit" class="dropdown-item">Order Cancelled</button>
+                                                    <button type="submit" class="dropdown-item">Order Cancel</button>
                                                 </form>
                                             </li>
                                         </ul>

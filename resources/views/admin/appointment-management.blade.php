@@ -20,6 +20,40 @@
     <p class="text-muted">Manage service bookings and appointments</p>
 </div>
 
+@if(isset($showMode) && isset($appointment))
+    <div id="admin-detail-content">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="card-title mb-0" id="admin-detail-title">Appointment Details</h5>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ route('admin.appointments.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to appointments
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p><strong>Appointment #</strong> #{{ $appointment->id }}</p>
+                    <p><strong>Customer:</strong> {{ $appointment->user->name ?? 'N/A' }} (ID: {{ $appointment->user_id }})</p>
+                    <p><strong>Service:</strong> {{ ucfirst($appointment->service_type) }}</p>
+                    <p><strong>Address:</strong> {{ $appointment->address ?? 'N/A' }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <p><strong>Scheduled:</strong> {{ optional($appointment->booking_date)->format('M d, Y') ?? 'N/A' }}</p>
+                    <p><strong>Time:</strong> {{ $appointment->time_slot ?? 'N/A' }}</p>
+                    <p><strong>Status:</strong> {{ ucfirst($appointment->status ?? 'N/A') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Appointments List</h5>
@@ -131,7 +165,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.appointments.show', $appointment) }}" class="btn btn-outline-primary" title="View appointment details">
+                                    <a href="{{ route('admin.appointments.show', $appointment) }}" data-admin-detail-url="{{ route('admin.appointments.show', $appointment) }}" class="btn btn-outline-primary admin-detail-trigger" title="View appointment details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @if(! empty($appointment->user->phone))
@@ -338,7 +372,12 @@
                 headers: {
                     'Accept': 'application/json'
                 }
-            }).then(response => response.json()).then(data => {
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Server response not OK');
+                }
+                return response.json();
+            }).then(data => {
                 document.getElementById('assignAppointmentBranch').innerText = data.appointment.branch || 'N/A';
                 const scheduleText = data.appointment.booking_date ? `${data.appointment.booking_date} ${data.appointment.time_slot || ''}` : 'TBD';
                 document.getElementById('assignAppointmentSchedule').innerText = scheduleText;
@@ -359,7 +398,12 @@
                 headers: {
                     'Accept': 'application/json'
                 }
-            }).then(response => response.json()).then(data => {
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Server response not OK');
+                }
+                return response.json();
+            }).then(data => {
                 renderStaffResults(data.staff);
             }).catch(() => {
                 document.getElementById('staffSearchResults').innerHTML = '<div class="list-group-item text-danger">Unable to load staff.</div>';

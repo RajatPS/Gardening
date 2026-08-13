@@ -4,7 +4,14 @@
 
 @section('content')
 @php
-    $staffMembers = $staffMembers ?? $staff ?? collect();
+    $staffMembers = collect();
+    if (isset($staffList) && is_iterable($staffList)) {
+        $staffMembers = collect($staffList);
+    } elseif (isset($staff) && is_iterable($staff)) {
+        $staffMembers = collect($staff);
+    } elseif (isset($staff) && is_object($staff)) {
+        $staffMembers = collect([$staff]);
+    }
 @endphp
 <div class="page-header mb-4">
     <h1 class="page-title">Staff Management</h1>
@@ -12,9 +19,10 @@
 </div>
 
 @if(isset($createMode) || isset($editMode) || isset($showMode))
+    <div id="admin-detail-content">
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="card-title mb-0">
+            <h5 class="card-title mb-0" id="admin-detail-title">
                 @if(isset($createMode)) Add Staff Member @endif
                 @if(isset($editMode)) Edit Staff Member @endif
                 @if(isset($showMode)) Staff Details @endif
@@ -30,42 +38,42 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Name</label>
-                            <input type="text" name="name" class="form-control" value="{{ old('name', $staff->name ?? '') }}" required>
+                            <input type="text" name="name" class="form-control" value="{{ old('name', optional($staff)->name) }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" value="{{ old('email', $staff->email ?? '') }}" required>
+                            <input type="email" name="email" class="form-control" value="{{ old('email', optional($staff)->email) }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
-                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $staff->phone ?? '') }}" required>
+                            <input type="text" name="phone" class="form-control" value="{{ old('phone', optional($staff)->phone) }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control" value="{{ old('city', $staff->city ?? '') }}">
+                            <input type="text" name="city" class="form-control" value="{{ old('city', optional($staff)->city) }}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Branch</label>
                             <select name="branch_id" class="form-select">
                                 <option value="">Select branch</option>
                                 @foreach($branches ?? [] as $branch)
-                                    <option value="{{ $branch->id }}" {{ old('branch_id', $staff->branch_id ?? '') == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                                    <option value="{{ $branch->id }}" {{ old('branch_id', optional($staff)->branch_id) == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Staff ID</label>
-                            <input type="text" name="staff_id" class="form-control" value="{{ old('staff_id', $staff->staff_id ?? '') }}">
+                            <input type="text" name="staff_id" class="form-control" value="{{ old('staff_id', optional($staff)->staff_id) }}">
                             <div class="form-text">Unique ID such as STF-M001.</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Capabilities</label>
-                            <input type="text" name="capabilities" class="form-control" value="{{ old('capabilities', isset($staff) && is_array($staff->capabilities) ? implode(', ', $staff->capabilities) : ($staff->capabilities ?? '')) }}">
+                            <input type="text" name="capabilities" class="form-control" value="{{ old('capabilities', is_array(optional($staff)->capabilities) ? implode(', ', $staff->capabilities) : (optional($staff)->capabilities ?? '')) }}">
                             <div class="form-text">Comma-separated list of capabilities.</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Current Duty</label>
-                            <input type="text" name="current_duty" class="form-control" value="{{ old('current_duty', $staff->current_duty ?? '') }}">
+                            <input type="text" name="current_duty" class="form-control" value="{{ old('current_duty', optional($staff)->current_duty) }}">
                         </div>
                         @if(isset($createMode))
                             <div class="col-md-6 mb-3">
@@ -143,6 +151,7 @@
             @endif
         </div>
     </div>
+    </div>
 @endif
 
 <div class="card">
@@ -199,6 +208,9 @@
                 </thead>
                 <tbody>
                     @forelse($staffMembers as $member)
+                        @if(! is_object($member))
+                            @continue
+                        @endif
                         <tr>
                             <td>#{{ $member->id }}</td>
                             <td>
@@ -217,9 +229,6 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.staff.show', $member) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     <a href="{{ route('admin.staff.edit', $member) }}" class="btn btn-outline-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>

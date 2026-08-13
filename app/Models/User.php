@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Branch;
 use App\Models\AppointmentStaff;
 use App\Models\ServiceBooking;
+use App\Models\Order;
+use App\Models\Subscription;
+use App\Models\Transaction;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
@@ -96,6 +99,21 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function appointments(): HasMany
     {
         return $this->hasMany(ServiceBooking::class, 'user_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'user_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'user_id');
     }
 
     public function assignedStaffAppointments(): HasManyThrough

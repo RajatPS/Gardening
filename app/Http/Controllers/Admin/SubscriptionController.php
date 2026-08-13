@@ -47,7 +47,9 @@ class SubscriptionController extends Controller
         $subscription = Subscription::with('user', 'plan')->findOrFail($id);
         $history = $subscription->history()->paginate(10);
 
-        return view('admin.subscription-management', compact('subscription', 'history'));
+        $subscriptions = Subscription::with('user', 'plan')->orderBy('created_at', 'desc')->paginate(15);
+
+        return view('admin.subscription-management', compact('subscription', 'history', 'subscriptions'))->with('showMode', true);
     }
 
     public function renew($id)

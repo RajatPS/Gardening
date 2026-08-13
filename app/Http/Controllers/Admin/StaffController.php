@@ -48,13 +48,14 @@ class StaffController extends Controller
     public function create()
     {
         $branches = Branch::orderBy('name')->get();
-        $staff = User::where('role', 'staff')
+        $staffList = User::where('role', 'staff')
             ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
                 $query->where('branch_id', $selectedBranchId);
             })
             ->paginate(15);
 
-        return view('admin.staff-management', compact('staff', 'branches'))->with('createMode', true);
+        $staff = null;
+        return view('admin.staff-management', compact('staff', 'staffList', 'branches'))->with('createMode', true);
     }
 
     public function store(Request $request)

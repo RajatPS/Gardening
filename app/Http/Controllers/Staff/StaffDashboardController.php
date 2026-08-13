@@ -17,16 +17,27 @@ class StaffDashboardController extends Controller
 
         $localityService = new AppointmentLocalityService();
         $staffCity = $staff->city;
+        $staffBranch = $staff->branch;
+        $staffBranchLocation = null;
+
+        if ($staffBranch && $staffBranch->latitude !== null && $staffBranch->longitude !== null) {
+            $staffBranchLocation = [
+                'lat' => (float) $staffBranch->latitude,
+                'lon' => (float) $staffBranch->longitude,
+            ];
+        }
 
         // Retrieve candidate bookings: unassigned bookings or those already assigned to this staff.
-        // We'll filter them in PHP using the locality service to ensure correct geographic matching.
-        $nearbyAppointments = ServiceBooking::query()
+        // We'll then filter them by branch, location, and service area relevance.
+        $nearbyAppointments = ServiceBooking::with('branch')
+            ->whereNotIn('status', ['completed', 'cancelled'])
             ->where(function ($query) use ($staff) {
                 $query->whereNull('assigned_staff_id')
-                    ->orWhere('assigned_staff_id', $staff->id);
+                    ->orWhere('assigned_staff_id', $staff->id)
+                    ->orWhereHas('assignedStaff', function ($query) use ($staff) {
+                        $query->where('users.id', $staff->id);
+                    });
             })
-            // Exclude finalized bookings so staff only sees actionable items
-            ->whereNotIn('status', ['completed', 'cancelled'])
             ->latest('booking_date')
             ->take(100)
             ->get();
@@ -34,6 +45,28 @@ class StaffDashboardController extends Controller
         $relevantAppointments = collect();
         foreach ($nearbyAppointments as $appointment) {
             $appointmentCity = $appointment->city;
+            $appointmentBranch = $appointment->branch;
+            $appointmentLocation = null;
+
+            if ($appointment->latitude !== null && $appointment->longitude !== null) {
+                $appointmentLocation = [
+                    'lat' => (float) $appointment->latitude,
+                    'lon' => (float) $appointment->longitude,
+                ];
+            }
+
+            if ($staffBranch && $appointmentBranch && $staffBranch->id === $appointmentBranch->id) {
+                $relevantAppointments->push($appointment);
+                continue;
+            }
+
+            if ($staffBranchLocation !== null && $appointmentLocation !== null) {
+                if ($localityService->areLocationsWithinRadius($staffBranchLocation, $appointmentLocation, 120)) {
+                    $relevantAppointments->push($appointment);
+                    continue;
+                }
+            }
+
             if ($localityService->isRelevant($staffCity, $appointmentCity, $appointment->address_line)) {
                 $relevantAppointments->push($appointment);
             }
@@ -72,6 +105,10 @@ class StaffDashboardController extends Controller
             return redirect()->back()->withErrors('This appointment is already assigned to another staff member.');
         }
 
+        if ($booking->assignedStaff()->where('users.id', '!=', $staff->id)->exists()) {
+            return redirect()->back()->withErrors('This appointment is already assigned to another staff member.');
+        }
+
         // Only allow acceptance for bookings that are in an actionable status
         $disallowedStatuses = ['completed', 'cancelled'];
         if (in_array($booking->status, $disallowedStatuses, true)) {
@@ -81,7 +118,20 @@ class StaffDashboardController extends Controller
         // Verify geographic/service area relevance
         $localityService = new AppointmentLocalityService();
         $bookingCity = $localityService->resolveBookingCity($booking->city, $booking->address_line);
-        if ($booking->assigned_staff_id === null && ! $localityService->isRelevant($staff->city, $bookingCity, $booking->address_line)) {
+
+        $allowedByBranch = false;
+        $staffBranch = $staff->branch;
+        if ($staffBranch && $staffBranch->latitude !== null && $staffBranch->longitude !== null && $booking->latitude !== null && $booking->longitude !== null) {
+            $allowedByBranch = $localityService->areLocationsWithinRadius([
+                'lat' => (float) $staffBranch->latitude,
+                'lon' => (float) $staffBranch->longitude,
+            ], [
+                'lat' => (float) $booking->latitude,
+                'lon' => (float) $booking->longitude,
+            ], 120);
+        }
+
+        if ($booking->assigned_staff_id === null && ! $allowedByBranch && ! $localityService->isRelevant($staff->city, $bookingCity, $booking->address_line)) {
             return redirect()->back()->withErrors('You are not authorised to accept this appointment (outside your service area).');
         }
 
@@ -93,6 +143,11 @@ class StaffDashboardController extends Controller
                 throw new \RuntimeException('Appointment already assigned');
             }
 
+            if ($fresh->assignedStaff()->where('users.id', '!=', $staff->id)->exists()) {
+                throw new \RuntimeException('Appointment already assigned');
+            }
+
+            $fresh->assignedStaff()->syncWithoutDetaching([$staff->id]);
             $fresh->update([
                 'assigned_staff_id' => $staff->id,
                 'status' => 'assigned',
@@ -104,6 +159,12 @@ class StaffDashboardController extends Controller
 
     private function assignedQueryForStaff(int $staffId)
     {
-        return ServiceBooking::query()->where('assigned_staff_id', $staffId);
+        return ServiceBooking::query()
+            ->where(function ($query) use ($staffId) {
+                $query->where('assigned_staff_id', $staffId)
+                    ->orWhereHas('assignedStaff', function ($query) use ($staffId) {
+                        $query->where('users.id', $staffId);
+                    });
+            });
     }
 }

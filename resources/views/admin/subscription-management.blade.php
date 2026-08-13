@@ -8,6 +8,39 @@
     <p class="text-muted">Manage user subscriptions and plans</p>
 </div>
 
+@if(isset($showMode) && isset($subscription))
+    <div id="admin-detail-content">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="card-title mb-0" id="admin-detail-title">Subscription Details</h5>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ route('admin.subscriptions.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to subscriptions
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>User:</strong> {{ $subscription->user->name ?? 'N/A' }} (ID: {{ $subscription->user_id }})</p>
+                    <p><strong>Plan:</strong> {{ $subscription->plan_name ?? ($subscription->plan?->name ?? 'N/A') }}</p>
+                    <p><strong>Amount:</strong> ₹{{ number_format($subscription->amount ?? 0, 2) }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p><strong>Start:</strong> {{ optional($subscription->start_date)->format('M d, Y') ?? 'N/A' }}</p>
+                    <p><strong>End:</strong> {{ optional($subscription->end_date)->format('M d, Y') ?? 'N/A' }}</p>
+                    <p><strong>Status:</strong> {{ ucfirst($subscription->status ?? 'N/A') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Subscriptions List</h5>
@@ -70,9 +103,6 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.subscriptions.show', $subscription) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     @if($subscription->status === 'active')
                                         <form method="POST" action="{{ route('admin.subscriptions.renew', $subscription) }}" class="d-inline">
                                             @csrf

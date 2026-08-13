@@ -58,13 +58,21 @@ class OrderController extends Controller
         $items = DB::table('order_items')->where('order_id', $id)->get();
         $customer = DB::table('users')->where('id', $order->user_id)->first();
 
-        return view('admin.order-management', compact('order', 'items', 'customer'));
+        // Provide orders list so the management view has its table data
+        $ordersQuery = DB::table('orders')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->select('orders.*', 'users.name as customer_name')
+            ->orderBy('orders.created_at', 'desc');
+
+        $orders = $ordersQuery->paginate(15);
+
+        return view('admin.order-management', compact('order', 'items', 'customer', 'orders'))->with('showMode', true);
     }
 
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,processing,shipped,out_for_delivery,delivered,cancelled,refunded'
+            'status' => 'required|in:pending,processing,cancelled'
         ]);
 
         DB::table('orders')->where('id', $id)->update(['status' => $validated['status']]);

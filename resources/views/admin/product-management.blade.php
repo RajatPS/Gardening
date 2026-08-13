@@ -8,6 +8,43 @@
     <p class="text-muted">Manage all products in your catalog</p>
 </div>
 
+@if(isset($showMode) && isset($product))
+    <div id="admin-detail-content">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="card-title mb-0" id="admin-detail-title">Product Details</h5>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ route('admin.products.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to products
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    @if($product->image_url)
+                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-fluid rounded">
+                    @endif
+                </div>
+                <div class="col-md-8">
+                    <h4>{{ $product->name }}</h4>
+                    <p class="text-muted">SKU: {{ $product->sku ?? 'N/A' }}</p>
+                    <p>{{ $product->description ?? 'No description' }}</p>
+                    <p><strong>Category:</strong> {{ $product->category }}</p>
+                    <p><strong>Price:</strong> ₹{{ number_format($product->price, 2) }}</p>
+                    <p><strong>Stock:</strong> {{ $product->stock ?? 0 }}</p>
+                    <p><strong>Status:</strong> {{ $product->is_active ? 'Active' : 'Inactive' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <div class="row align-items-center">
@@ -107,9 +144,6 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.products.show', $product) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-outline-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
