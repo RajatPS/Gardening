@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ProductController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/{product}', [ProductController::class, 'show']);
+
     Route::get('/catalog', fn (): JsonResponse => response()->json([
         'data' => [
             'plants' => ['Indoor', 'Outdoor', 'Flowering', 'Medicinal', 'Air purifying', 'Bonsai'],

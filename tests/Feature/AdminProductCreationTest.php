@@ -4,12 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AdminProductCreationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+    }
 
     public function test_admin_can_view_product_creation_page(): void
     {
@@ -20,7 +27,7 @@ class AdminProductCreationTest extends TestCase
 
         // Verify the create page contains required fields and title
         $response->assertSee('Create Product');
-        $response->assertSee('name="name"');
+        $response->assertSee('name="name"', false);
     }
 
     public function test_admin_can_create_product_without_manual_sku(): void
@@ -37,6 +44,7 @@ class AdminProductCreationTest extends TestCase
             'stock' => 10,
             'is_active' => '1',
             'is_pet_safe' => '1',
+            'confirm_details' => '1',
         ]);
 
         $response->assertRedirect(route('admin.products.index'));

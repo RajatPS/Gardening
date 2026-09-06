@@ -6,12 +6,20 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\SavedProduct;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class CustomerStorefrontTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+    }
 
     public function test_guest_can_add_a_product_to_cart(): void
     {
@@ -71,6 +79,9 @@ class CustomerStorefrontTest extends TestCase
         $_SERVER['PAYMENT_GATEWAY'] = 'local';
         $_SERVER['RAZORPAY_KEY_ID'] = '';
         $_SERVER['RAZORPAY_KEY_SECRET'] = '';
+        Config::set('services.razorpay.gateway', 'local');
+        Config::set('services.razorpay.key_id', null);
+        Config::set('services.razorpay.key_secret', null);
 
         $user = User::factory()->create(['role' => 'customer']);
         $this->actingAs($user);

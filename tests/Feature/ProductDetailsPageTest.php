@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -14,6 +15,10 @@ class ProductDetailsPageTest extends TestCase
 
     public function test_product_details_page_displays_description_and_gallery_images(): void
     {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/kiddo-1.jpg', 'image-one');
+        Storage::disk('public')->put('products/kiddo-2.jpg', 'image-two');
+
         $product = Product::create([
             'name' => 'Kiddo Plant',
             'type' => 'plant',
@@ -53,7 +58,7 @@ class ProductDetailsPageTest extends TestCase
         $response->assertSee('Full product description from DB');
         $response->assertSee('type', false);
         $response->assertSee('Accessories');
-        $response->assertSee('http://localhost:8000/storage/products/kiddo-1.jpg');
-        $response->assertSee('http://localhost:8000/storage/products/kiddo-2.jpg');
+        $response->assertSee('/storage/products/kiddo-1.jpg');
+        $response->assertSee('/storage/products/kiddo-2.jpg');
     }
 }

@@ -98,6 +98,12 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (User::where('role', 'admin')->exists()) {
+            return redirect()->route('admin.login')->withErrors([
+                'email' => 'Admin registration is already closed.',
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',

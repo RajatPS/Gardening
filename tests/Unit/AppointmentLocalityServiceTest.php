@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\AppointmentLocalityService;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AppointmentLocalityServiceTest extends TestCase
 {

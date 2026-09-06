@@ -2,11 +2,29 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class CustomerNavigationTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Product::create([
+            'name' => 'Test Fern',
+            'type' => 'plant',
+            'category' => 'Indoor',
+            'price' => 499,
+            'stock' => 5,
+            'is_active' => true,
+        ]);
+    }
+
     public function test_home_page_provides_numeric_product_prices_for_cart_actions(): void
     {
         $response = $this->get(route('home'));

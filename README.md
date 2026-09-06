@@ -11,7 +11,7 @@ Laravel 12 foundation for a Plant Nursery and Garden Management Platform.
 - AI assistant, plant encyclopedia, disease detection, and garden planner UI shells
 - Customer dashboard
 - Staff and admin operations surfaces
-- REST API stubs for web and future Flutter clients
+- Versioned REST API for the public product catalog and future Flutter clients
 
 ## Stack
 
@@ -39,3 +39,5 @@ php artisan migrate --seed
 ```
 
 The current local defaults use file sessions/cache and sync queues so the UI can run before the database is configured.
+
+See [API.md](API.md) for the available REST endpoints and response contracts.

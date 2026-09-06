@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('admin')->group(function () {
     Route::get('login', [AuthController::class, 'loginForm'])->name('admin.login');
     Route::post('login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::get('register', [AuthController::class, 'registerForm'])->middleware('guest')->name('admin.register');
+    Route::post('register', [AuthController::class, 'register'])->middleware('guest')->name('admin.register.post');
     Route::get('forgot-password', [AuthController::class, 'forgotPasswordForm'])->name('admin.forgot-password');
     Route::post('forgot-password', [AuthController::class, 'sendResetLink'])->name('admin.forgot-password.post');
     Route::get('reset-password/{token}', [AuthController::class, 'resetPasswordForm'])->name('admin.reset-password');
