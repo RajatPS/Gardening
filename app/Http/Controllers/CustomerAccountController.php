@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class CustomerAccountController extends Controller
 {
@@ -65,8 +67,16 @@ class CustomerAccountController extends Controller
 
         $product = Product::findOrFail($validated['product_id']);
         $this->upsertCartItem($product, (int) ($validated['quantity'] ?? 1));
+        $item = $this->cartItemsQuery()
+            ->where('product_id', $product->id)
+            ->latest('id')
+            ->first();
 
-        return redirect()->route('customer.cart')->with('success', 'Item prepared for checkout.');
+        if ($item) {
+            session(['checkout_selected_ids' => [$item->id]]);
+        }
+
+        return redirect()->route('customer.checkout')->with('success', 'Review your delivery details before payment.');
     }
 
     public function updateCart(Request $request, CartItem $cartItem)
@@ -136,7 +146,6 @@ class CustomerAccountController extends Controller
         }
 
         $summary = $this->buildCheckoutSummary($items);
-        $currency = config('app.currency', env('APP_CURRENCY', 'INR'));
         session(['checkout_selected_ids' => $items->pluck('id')->all()]);
 
         $requestedAmount = $request->input('payable_amount');
@@ -144,17 +153,13 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'The payable amount could not be validated. Please try again.');
         }
 
-        if (! $this->paymentGatewayEnabled()) {
-            return $this->completeCartOrderDirectly($items, $summary, $request, 'mock');
-        }
-
-        return view('customer.cart-payment', [
-            'items'          => $items,
-            'amount'         => $summary['grand_total'],
-            'currency'       => $currency,
-            'paymentGateway' => 'razorpay',
-            'paymentMethod'  => null,
-            'summary'        => $summary,
+        return view('customer.checkout-review', [
+            'items' => $items,
+            'amount' => $summary['grand_total'],
+            'currency' => config('app.currency', env('APP_CURRENCY', 'INR')),
+            'summary' => $summary,
+            'user' => auth()->user(),
+            'hasSavedAddress' => $this->hasSavedAddress(auth()->user()),
         ]);
     }
 
@@ -167,6 +172,13 @@ class CustomerAccountController extends Controller
         $validated = $request->validate([
             'payment_method' => ['required', 'string', 'in:upi,qr,card,netbanking,wallet,cash'],
         ]);
+
+        $delivery = $this->validatedDeliveryDetails($request);
+        if (! $delivery) {
+            return redirect()->route('customer.checkout')->withErrors([
+                'delivery' => 'Please confirm your delivery address and contact phone before continuing to payment.',
+            ]);
+        }
 
         $items = $this->selectedCartItems($request);
 
@@ -185,7 +197,7 @@ class CustomerAccountController extends Controller
         }
 
         if ($paymentMethod === 'cash') {
-            return $this->createCashOnDeliveryOrder($items, $summary, $request);
+            return $this->createCashOnDeliveryOrder($items, $summary, $request, $delivery);
         }
 
         if ($this->paymentGatewayEnabled()) {
@@ -226,7 +238,7 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'Could not initiate payment. Please try again.');
         }
 
-        return $this->completeCartOrderDirectly($items, $summary, $request, $paymentMethod);
+        return $this->completeCartOrderDirectly($items, $summary, $request, $paymentMethod, $delivery);
     }
 
     public function checkoutVerify(Request $request)
@@ -242,7 +254,17 @@ class CustomerAccountController extends Controller
             'razorpay_signature'  => ['required', 'string'],
         ]);
 
-        $transaction = Transaction::where('transaction_id', $validated['razorpay_order_id'])->latest()->first();
+        $delivery = session('checkout_delivery');
+        if (! is_array($delivery) || ! $this->hasCompleteDeliveryDetails($delivery)) {
+            return redirect()->route('customer.checkout')->withErrors([
+                'delivery' => 'Please confirm your delivery details before payment can be verified.',
+            ]);
+        }
+
+        $transaction = Transaction::where('user_id', auth()->id())
+            ->where('transaction_id', $validated['razorpay_order_id'])
+            ->latest()
+            ->first();
 
         if (! $transaction) {
             return redirect()->route('customer.cart')->with('error', 'We could not find the payment record. Please try again.');
@@ -276,7 +298,7 @@ class CustomerAccountController extends Controller
 
         $summary = $this->buildCheckoutSummary($items);
 
-        DB::transaction(function () use ($items, $summary, $validated, $transaction, $request) {
+        DB::transaction(function () use ($items, $summary, $validated, $transaction, $delivery) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
@@ -284,7 +306,8 @@ class CustomerAccountController extends Controller
                 'status'           => 'pending',
                 'payment_status'   => 'paid',
                 'payment_method'   => $validated['payment_method'],
-                'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
+                'shipping_address' => $delivery['shipping_address'],
+                'contact_phone'    => $delivery['phone'],
                 'notes'            => 'Placed from cart — paid via Razorpay',
             ]);
 
@@ -316,6 +339,8 @@ class CustomerAccountController extends Controller
 
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
+
+        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
 
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully. Payment completed.');
     }
@@ -637,11 +662,12 @@ class CustomerAccountController extends Controller
         return $product->image_url;
     }
 
-    private function completeCartOrderDirectly($items, array $summary, Request $request, string $paymentMethod = 'cash')
+    private function completeCartOrderDirectly($items, array $summary, Request $request, string $paymentMethod = 'cash', ?array $delivery = null)
     {
         $order = null;
+        $delivery ??= session('checkout_delivery');
 
-        DB::transaction(function () use ($items, $summary, $request, $paymentMethod, &$order) {
+        DB::transaction(function () use ($items, $summary, $request, $paymentMethod, $delivery, &$order) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
@@ -649,7 +675,8 @@ class CustomerAccountController extends Controller
                 'status'           => 'pending',
                 'payment_status'   => in_array($paymentMethod, ['cash','cod'], true) ? 'pending' : 'paid',
                 'payment_method'   => $paymentMethod,
-                'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
+                'shipping_address' => $delivery['shipping_address'],
+                'contact_phone'    => $delivery['phone'],
                 'notes'            => $request->input('notes', 'Placed from cart'),
             ]);
 
@@ -683,16 +710,16 @@ class CustomerAccountController extends Controller
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
 
-        session()->forget('checkout_selected_ids');
+        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
 
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully.');
     }
 
-    private function createCashOnDeliveryOrder($items, array $summary, Request $request)
+    private function createCashOnDeliveryOrder($items, array $summary, Request $request, array $delivery)
     {
         $order = null;
 
-        DB::transaction(function () use ($items, $summary, $request, &$order) {
+        DB::transaction(function () use ($items, $summary, $request, $delivery, &$order) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
@@ -700,7 +727,8 @@ class CustomerAccountController extends Controller
                 'status'           => 'pending',
                 'payment_status'   => 'pending',
                 'payment_method'   => 'cod',
-                'shipping_address' => auth()->user()->address ?? $request->input('address', 'Address not provided'),
+                'shipping_address' => $delivery['shipping_address'],
+                'contact_phone'    => $delivery['phone'],
                 'notes'            => 'Cash on Delivery order placed from cart',
             ]);
 
@@ -719,7 +747,7 @@ class CustomerAccountController extends Controller
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
 
-        session()->forget('checkout_selected_ids');
+        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
 
         return redirect()->route('customer.orders')->with('success', 'COD order placed successfully. Collect cash on delivery after delivery.');
     }
@@ -727,6 +755,91 @@ class CustomerAccountController extends Controller
     private function paymentGatewayEnabled(): bool
     {
         return ! empty(config('services.razorpay.key_id')) && ! empty(config('services.razorpay.key_secret')) && str_contains(strtolower((string) config('services.razorpay.gateway', 'razorpay')), 'razorpay');
+    }
+
+    private function hasSavedAddress($user): bool
+    {
+        return $user && collect(['name', 'house_no', 'street', 'city', 'state', 'pincode', 'country'])
+            ->every(fn (string $field): bool => filled($user->{$field}));
+    }
+
+    private function validatedDeliveryDetails(Request $request): ?array
+    {
+        $user = auth()->user();
+        $useSavedAddress = $request->input('address_mode') === 'saved';
+
+        if ($useSavedAddress && $this->hasSavedAddress($user)) {
+            $address = [
+                'name' => $user->name,
+                'house_no' => $user->house_no,
+                'street' => $user->street,
+                'city' => $user->city,
+                'state' => $user->state,
+                'pincode' => $user->pincode,
+                'country' => $user->country,
+            ];
+        } else {
+            $validator = Validator::make($request->all(), [
+                'name' => ['required', 'string', 'max:255'],
+                'house_no' => ['required', 'string', 'max:255'],
+                'street' => ['required', 'string', 'max:255'],
+                'city' => ['required', 'string', 'max:255'],
+                'state' => ['required', 'string', 'max:255'],
+                'pincode' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9 -]{2,19}$/'],
+                'country' => ['required', 'string', 'max:255'],
+            ]);
+
+            if ($validator->fails()) {
+                throw (new ValidationException($validator))->redirectTo(route('customer.checkout'));
+            }
+
+            $address = $validator->validated();
+        }
+
+        $phone = $request->input('phone', $user->phone);
+        if (! is_string($phone) || ! preg_match('/^[0-9+() -]{7,30}$/', $phone)) {
+            $validator = Validator::make([], []);
+            $validator->errors()->add('phone', 'Enter a valid contact phone number.');
+            throw (new ValidationException($validator))->redirectTo(route('customer.checkout'));
+        }
+
+        $delivery = [
+            'name' => $address['name'],
+            'house_no' => $address['house_no'],
+            'street' => $address['street'],
+            'city' => $address['city'],
+            'state' => $address['state'],
+            'pincode' => $address['pincode'],
+            'country' => $address['country'],
+            'phone' => trim($phone),
+        ];
+        $delivery['shipping_address'] = collect([
+            $delivery['name'],
+            $delivery['house_no'] . ', ' . $delivery['street'],
+            $delivery['city'] . ', ' . $delivery['state'] . ' - ' . $delivery['pincode'],
+            $delivery['country'],
+        ])->implode("\n");
+
+        $user->forceFill([
+            'name' => $delivery['name'],
+            'phone' => $delivery['phone'],
+            'address' => $delivery['shipping_address'],
+            'house_no' => $delivery['house_no'],
+            'street' => $delivery['street'],
+            'city' => $delivery['city'],
+            'state' => $delivery['state'],
+            'pincode' => $delivery['pincode'],
+            'country' => $delivery['country'],
+        ])->save();
+
+        session(['checkout_delivery' => $delivery]);
+
+        return $delivery;
+    }
+
+    private function hasCompleteDeliveryDetails(array $delivery): bool
+    {
+        return collect(['shipping_address', 'phone'])->every(fn (string $field): bool => filled($delivery[$field] ?? null));
     }
 
     private function createRazorpayOrder(int $amountInPaise, string $currency, string $label, string $paymentMethod): array

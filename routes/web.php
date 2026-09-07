@@ -53,7 +53,7 @@ Route::middleware('customer.auth')->group(function (): void {
     Route::post('/customer/cart/{cartItem}/update', [\App\Http\Controllers\CustomerAccountController::class, 'updateCart'])->name('customer.cart.update');
     Route::delete('/customer/cart/{cartItem}/remove', [\App\Http\Controllers\CustomerAccountController::class, 'removeCartItem'])->name('customer.cart.remove');
     Route::get('/customer/orders', [\App\Http\Controllers\CustomerAccountController::class, 'orders'])->name('customer.orders');
-    Route::post('/customer/checkout', [\App\Http\Controllers\CustomerAccountController::class, 'checkout'])->name('customer.checkout');
+    Route::match(['get', 'post'], '/customer/checkout', [\App\Http\Controllers\CustomerAccountController::class, 'checkout'])->name('customer.checkout');
     Route::post('/customer/checkout/pay', [\App\Http\Controllers\CustomerAccountController::class, 'checkoutPay'])->name('customer.checkout.pay');
     Route::post('/customer/checkout/verify', [\App\Http\Controllers\CustomerAccountController::class, 'checkoutVerify'])->name('customer.checkout.verify');
     Route::post('/customer/buy-now', [\App\Http\Controllers\CustomerAccountController::class, 'buyNow'])->name('customer.buy-now');

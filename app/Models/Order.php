@@ -19,6 +19,7 @@ class Order extends Model
         'payment_status',
         'payment_method',
         'shipping_address',
+        'contact_phone',
         'notes',
         'assigned_staff_id',
     ];

@@ -53,7 +53,16 @@ class CustomerStorefrontTest extends TestCase
             'stock' => 5,
         ]);
 
-        $user = User::factory()->create(['role' => 'customer']);
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'phone' => '9876543210',
+            'house_no' => '12A',
+            'street' => 'Garden Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
+        ]);
         $this->actingAs($user);
 
         $response = $this->post(route('customer.saved-products.save'), [
@@ -83,7 +92,16 @@ class CustomerStorefrontTest extends TestCase
         Config::set('services.razorpay.key_id', null);
         Config::set('services.razorpay.key_secret', null);
 
-        $user = User::factory()->create(['role' => 'customer']);
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'phone' => '9876543210',
+            'house_no' => '12A',
+            'street' => 'Garden Road',
+            'city' => 'Madharihat',
+            'state' => 'West Bengal',
+            'pincode' => '736135',
+            'country' => 'India',
+        ]);
         $this->actingAs($user);
 
         $product = Product::create([
@@ -105,6 +123,16 @@ class CustomerStorefrontTest extends TestCase
 
         $response = $this->post(route('customer.checkout'), [
             'selected_items' => [$cartItem->id],
+        ]);
+
+        $response->assertOk();
+        $response->assertViewIs('customer.checkout-review');
+
+        $response = $this->post(route('customer.checkout.pay'), [
+            'selected_items' => [$cartItem->id],
+            'address_mode' => 'saved',
+            'phone' => '9876543210',
+            'payment_method' => 'upi',
         ]);
 
         $response->assertRedirect(route('customer.orders'));
