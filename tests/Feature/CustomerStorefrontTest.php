@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\CartItem;
+use App\Models\Branch;
 use App\Models\Product;
 use App\Models\SavedProduct;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CustomerStorefrontTest extends TestCase
@@ -19,6 +21,15 @@ class CustomerStorefrontTest extends TestCase
     {
         parent::setUp();
         $this->withoutMiddleware(ValidateCsrfToken::class);
+        Branch::create([
+            'name' => 'Test Branch',
+            'address' => 'Kolkata, India',
+            'latitude' => 22.5726,
+            'longitude' => 88.3639,
+        ]);
+        Http::fake([
+            'https://nominatim.openstreetmap.org/*' => Http::response([['lat' => '22.5726', 'lon' => '88.3639']], 200),
+        ]);
     }
 
     public function test_guest_can_add_a_product_to_cart(): void

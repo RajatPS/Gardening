@@ -17,6 +17,10 @@ class OrderController extends Controller
             ->join('users', 'orders.user_id', '=', 'users.id')
             ->select('orders.*', 'users.name as customer_name');
 
+        if ($selectedBranchId = session('admin.selected_branch_id')) {
+            $query->where('orders.branch_id', $selectedBranchId);
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -62,6 +66,9 @@ class OrderController extends Controller
         $ordersQuery = DB::table('orders')
             ->join('users', 'orders.user_id', '=', 'users.id')
             ->select('orders.*', 'users.name as customer_name')
+            ->when(session('admin.selected_branch_id'), function ($query, $selectedBranchId) {
+                $query->where('orders.branch_id', $selectedBranchId);
+            })
             ->orderBy('orders.created_at', 'desc');
 
         $orders = $ordersQuery->paginate(15);

@@ -15,7 +15,7 @@ class CustomerAuthController extends Controller
 {
     public function googleRedirect(Request $request)
     {
-        $request->session()->put('oauth_redirect', $request->query('redirect', route('customer.profile')));
+        $request->session()->put('oauth_redirect', $request->query('redirect', route('home')));
 
         $redirectResponse = Socialite::driver('google')->redirect();
         $redirectUrl = method_exists($redirectResponse, 'getTargetUrl') ? $redirectResponse->getTargetUrl() : null;
@@ -55,7 +55,8 @@ class CustomerAuthController extends Controller
 
         if (! $email) {
             Log::error('Google OAuth callback missing email', [
-                'user' => $googleUser->toArray(),
+                    'name' => $googleUser->getName(),
+                    'nickname' => $googleUser->getNickname(),
             ]);
 
             return redirect()->route('customer.login')->with('error', 'Google did not return your email address.');
@@ -86,13 +87,13 @@ class CustomerAuthController extends Controller
         Auth::guard('web')->login($user, true);
         $request->session()->regenerate();
 
-        return redirect($request->session()->get('oauth_redirect', route('customer.profile')));
+        return redirect($request->session()->get('oauth_redirect', route('home')))->with('status', 'Login successful.');
     }
 
     public function loginForm(Request $request)
     {
         return view('customer.auth.login', [
-            'redirect' => $request->query('redirect', route('customer.profile')),
+            'redirect' => $request->query('redirect', route('home')),
         ]);
     }
 
@@ -103,23 +104,102 @@ class CustomerAuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($validated, $request->boolean('remember'))) {
-            $request->session()->regenerate();
+        $user = User::where('email', $validated['email'])
+            ->where('status', 'active')
+            ->where('role', 'customer')
+            ->first();
 
-            $user = Auth::user();
-
-            if ($user && $user->shouldRequirePasswordChange()) {
-                $user->forceFill(['must_change_password' => true])->save();
-
-                return redirect()->route('customer.change-password')->with('status', 'Please choose a new password before continuing.');
+        if ($user && Hash::check($validated['password'], $user->password)) {
+            if (! filled($user->phone)) {
+                return back()->withErrors([
+                    'phone' => 'Add a phone number to your profile before signing in with OTP.',
+                ])->onlyInput('email');
             }
 
-            return redirect($request->input('redirect', route('customer.profile')));
+            $otp = random_int(100000, 999999);
+            $otpKey = 'customer_login_otp_' . $user->id;
+            Cache::put($otpKey, $otp, now()->addMinutes(10));
+            $request->session()->put('customer_login_pending', [
+                'user_id' => $user->id,
+                'remember' => $request->boolean('remember'),
+                'redirect' => $request->input('redirect', route('home')),
+            ]);
+
+            try {
+                $this->sendTwilioOtp($user->phone, $otp, 'login');
+            } catch (\Throwable $exception) {
+                Cache::forget($otpKey);
+                $request->session()->forget('customer_login_pending');
+
+                return back()->withErrors([
+                    'email' => 'We could not send the login verification code. Please try again.',
+                ])->onlyInput('email');
+            }
+
+            return redirect()->route('customer.login.otp');
         }
 
         return back()->withErrors([
             'email' => 'These credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    public function loginOtpForm()
+    {
+        $pending = session('customer_login_pending');
+
+        if (! is_array($pending) || empty($pending['user_id'])) {
+            return redirect()->route('customer.login');
+        }
+
+        $user = User::find($pending['user_id']);
+
+        if (! $user || $user->role !== 'customer' || $user->status !== 'active') {
+            session()->forget('customer_login_pending');
+
+            return redirect()->route('customer.login');
+        }
+
+        return view('customer.auth.reset-password', [
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'loginOtp' => true,
+        ]);
+    }
+
+    public function verifyLoginOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'otp' => ['required', 'digits:6'],
+        ]);
+        $pending = session('customer_login_pending');
+
+        if (! is_array($pending) || empty($pending['user_id'])) {
+            return redirect()->route('customer.login')->withErrors([
+                'otp' => 'Your login verification session has expired. Please sign in again.',
+            ]);
+        }
+
+        $user = User::find($pending['user_id']);
+        $otpKey = 'customer_login_otp_' . $pending['user_id'];
+        $storedOtp = Cache::get($otpKey);
+
+        if (! $user || $user->role !== 'customer' || $user->status !== 'active' || (string) $storedOtp !== (string) $validated['otp']) {
+            return back()->withErrors(['otp' => 'Invalid or expired verification code.']);
+        }
+
+        Cache::forget($otpKey);
+        session()->forget('customer_login_pending');
+        Auth::guard('web')->login($user, (bool) ($pending['remember'] ?? false));
+        $request->session()->regenerate();
+
+        if ($user->shouldRequirePasswordChange()) {
+            $user->forceFill(['must_change_password' => true])->save();
+
+            return redirect()->route('customer.change-password')->with('status', 'Please choose a new password before continuing.');
+        }
+
+        return redirect($pending['redirect'] ?? route('home'))->with('status', 'Login successful.');
     }
 
     public function logout(Request $request)
@@ -135,7 +215,7 @@ class CustomerAuthController extends Controller
     public function registerForm(Request $request)
     {
         return view('customer.auth.register', [
-            'redirect' => $request->query('redirect', route('customer.profile')),
+            'redirect' => $request->query('redirect', route('home')),
         ]);
     }
 
@@ -159,7 +239,7 @@ class CustomerAuthController extends Controller
 
         Auth::login($user);
 
-        return redirect($request->input('redirect', route('customer.profile')));
+        return redirect($request->input('redirect', route('home')))->with('status', 'Signed up successfully.');
     }
 
     public function forgotPasswordForm()
@@ -185,7 +265,7 @@ class CustomerAuthController extends Controller
             return back()->withErrors(['email' => 'No account was found for that email address.']);
         }
 
-        $phone = $validated['phone'] ?: $user->phone;
+        $phone = ($validated['phone'] ?? null) ?: $user->phone;
 
         if (empty($phone)) {
             return back()->withErrors(['phone' => 'Please provide a phone number so we can send the verification code.']);
@@ -281,7 +361,7 @@ class CustomerAuthController extends Controller
         return redirect()->route('customer.login')->with('status', 'Password reset successfully. Please sign in with your new password.');
     }
 
-    private function sendTwilioOtp(string $phone, int $otp): void
+    private function sendTwilioOtp(string $phone, int $otp, string $purpose = 'password reset'): void
     {
         $sid = config('services.twilio.sid', '');
         $token = config('services.twilio.token', '');
@@ -296,7 +376,7 @@ class CustomerAuthController extends Controller
             ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
                 'From' => $from,
                 'To' => $phone,
-                'Body' => 'Your GardenHub password reset OTP is ' . $otp,
+                'Body' => 'Your GardenHub ' . $purpose . ' OTP is ' . $otp,
             ]);
 
         if (! $response->successful()) {

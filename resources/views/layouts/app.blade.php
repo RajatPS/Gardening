@@ -301,6 +301,14 @@
         </header>
         @endif
 
+        @if (session('status') || session('success') || session('error'))
+            <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    {{ session('status') ?: session('success') ?: session('error') }}
+                </div>
+            </div>
+        @endif
+
         <main>@yield('content')</main>
 
         @php

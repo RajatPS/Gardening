@@ -35,6 +35,8 @@ Route::get('/auth/google/callback', [\App\Http\Controllers\CustomerAuthControlle
 Route::get('/customer/google/callback', [\App\Http\Controllers\CustomerAuthController::class, 'googleCallback']);
 Route::get('/customer/login', [\App\Http\Controllers\CustomerAuthController::class, 'loginForm'])->name('customer.login');
 Route::post('/customer/login', [\App\Http\Controllers\CustomerAuthController::class, 'login'])->name('customer.login.post');
+Route::get('/customer/login/otp', [\App\Http\Controllers\CustomerAuthController::class, 'loginOtpForm'])->name('customer.login.otp');
+Route::post('/customer/login/otp', [\App\Http\Controllers\CustomerAuthController::class, 'verifyLoginOtp'])->name('customer.login.otp.verify');
 Route::get('/customer/register', [\App\Http\Controllers\CustomerAuthController::class, 'registerForm'])->name('customer.register');
 Route::post('/customer/register', [\App\Http\Controllers\CustomerAuthController::class, 'register'])->name('customer.register.post');
 Route::get('/customer/forgot-password', [\App\Http\Controllers\CustomerAuthController::class, 'forgotPasswordForm'])->name('customer.forgot-password');

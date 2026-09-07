@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\SavedProduct;
 use App\Models\Transaction;
+use App\Services\BranchResolverService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -180,6 +181,10 @@ class CustomerAccountController extends Controller
             ]);
         }
 
+        $branch = $this->resolveOrderBranch($delivery);
+        $delivery['branch_id'] = $branch->id;
+        session(['checkout_delivery' => $delivery]);
+
         $items = $this->selectedCartItems($request);
 
         if ($items->isEmpty()) {
@@ -301,6 +306,7 @@ class CustomerAccountController extends Controller
         DB::transaction(function () use ($items, $summary, $validated, $transaction, $delivery) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
+                'branch_id'        => $delivery['branch_id'],
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
@@ -670,6 +676,7 @@ class CustomerAccountController extends Controller
         DB::transaction(function () use ($items, $summary, $request, $paymentMethod, $delivery, &$order) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
+                'branch_id'        => $delivery['branch_id'],
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
@@ -722,6 +729,7 @@ class CustomerAccountController extends Controller
         DB::transaction(function () use ($items, $summary, $request, $delivery, &$order) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
+                'branch_id'        => $delivery['branch_id'],
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
@@ -840,6 +848,38 @@ class CustomerAccountController extends Controller
     private function hasCompleteDeliveryDetails(array $delivery): bool
     {
         return collect(['shipping_address', 'phone'])->every(fn (string $field): bool => filled($delivery[$field] ?? null));
+    }
+
+    private function resolveOrderBranch(array $delivery): \App\Models\Branch
+    {
+        $resolver = new BranchResolverService();
+        $location = $resolver->resolveCustomerLocation(
+            $delivery['house_no'] . ', ' . $delivery['street'],
+            $delivery['city'],
+            $delivery['pincode']
+        );
+
+        if ($location === null) {
+            throw $this->deliveryValidationException(
+                'We could not determine a delivery location from this address. Please check the address and PIN code.'
+            );
+        }
+
+        $branch = $resolver->resolveNearestBranchToCoordinates($location);
+
+        if ($branch === null) {
+            throw $this->deliveryValidationException('No delivery branch is currently available for this location.');
+        }
+
+        return $branch;
+    }
+
+    private function deliveryValidationException(string $message): ValidationException
+    {
+        $validator = Validator::make([], []);
+        $validator->errors()->add('delivery', $message);
+
+        return (new ValidationException($validator))->redirectTo(route('customer.checkout'));
     }
 
     private function createRazorpayOrder(int $amountInPaise, string $currency, string $label, string $paymentMethod): array

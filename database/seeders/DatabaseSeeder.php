@@ -36,10 +36,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::updateOrCreate([
-            'email' => 'admin1@gmail.com',
+            'email' => 'testadmin@local.dev',
         ], [
-            'name' => 'Admin One',
-            'password' => bcrypt('1122334455'),
+            'name' => 'Test Admin',
+            'password' => bcrypt('11223344'),
             'role' => 'admin',
             'status' => 'active',
             'user_type' => 'admin',
@@ -52,22 +52,7 @@ class DatabaseSeeder extends Seeder
             'country' => 'India',
         ]);
 
-        User::updateOrCreate([
-            'email' => 'u1@gmail.com',
-        ], [
-            'name' => 'U1 User',
-            'password' => bcrypt('1122334455'),
-            'role' => 'customer',
-            'status' => 'active',
-            'user_type' => 'customer',
-            'address' => 'Eden Garden Street, Near Madharihat Bus Stand',
-            'house_no' => '14B',
-            'street' => 'Madharihat Bus Stand Road',
-            'city' => 'Madharihat',
-            'state' => 'West Bengal',
-            'pincode' => '736135',
-            'country' => 'India',
-        ]);
+        User::where('email', 'admin1@gmail.com')->update(['email' => 'testadmin@local.dev']);
 
         $madharihat = Branch::updateOrCreate(
             ['name' => 'Madharihat'],
@@ -142,26 +127,6 @@ class DatabaseSeeder extends Seeder
             'pincode' => '736135',
             'country' => 'India',
         ]);
-
-        $madharihat = Branch::updateOrCreate(
-            ['name' => 'Madharihat'],
-            [
-                'name' => 'Madharihat',
-                'address' => 'Near Madharihat Market, NH31, West Bengal 736135',
-                'latitude' => 26.5013,
-                'longitude' => 89.3485,
-            ]
-        );
-
-        $kolkata = Branch::updateOrCreate(
-            ['name' => 'Kolkata'],
-            [
-                'name' => 'Kolkata',
-                'address' => 'Eden Gardens Area, Kolkata, West Bengal 700021',
-                'latitude' => 22.5726,
-                'longitude' => 88.3639,
-            ]
-        );
 
         User::updateOrCreate(
             ['email' => 'ravi.kumar@example.com'],

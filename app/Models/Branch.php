@@ -23,4 +23,9 @@ class Branch extends Model
     {
         return $this->hasMany(ServiceBooking::class, 'branch_id');
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'branch_id');
+    }
 }

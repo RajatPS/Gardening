@@ -15,8 +15,7 @@ class AdminMiddleware
 
         $user = auth()->user();
         
-        // Check if user has admin role
-        if ($user->role !== 'admin' && $user->role !== 'staff') {
+        if ($user->role !== 'admin') {
             abort(403, 'Unauthorized access to admin panel');
         }
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Staff\StaffAuthController;
 use App\Http\Controllers\Staff\StaffDashboardController;
+use App\Http\Controllers\Staff\OrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('staff')->name('staff.')->group(function () {
@@ -21,6 +22,9 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('change-password', [StaffAuthController::class, 'changePasswordForm'])->name('change-password');
         Route::post('change-password', [StaffAuthController::class, 'changePassword'])->name('change-password.post');
         Route::get('dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
         Route::post('appointments/{booking}/accept', [StaffDashboardController::class, 'acceptAppointment'])->name('appointments.accept');
     });
 });
