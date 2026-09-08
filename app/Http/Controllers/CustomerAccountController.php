@@ -67,15 +67,15 @@ class CustomerAccountController extends Controller
         }
 
         $product = Product::findOrFail($validated['product_id']);
-        $this->upsertCartItem($product, (int) ($validated['quantity'] ?? 1));
-        $item = $this->cartItemsQuery()
-            ->where('product_id', $product->id)
-            ->latest('id')
-            ->first();
+        $buyNowSelection = 'buy-now-' . $product->id;
 
-        if ($item) {
-            session(['checkout_selected_ids' => [$item->id]]);
-        }
+        session([
+            'checkout_selected_ids' => [$buyNowSelection],
+            'direct_buy_now' => [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ],
+        ]);
 
         return redirect()->route('customer.checkout')->with('success', 'Review your delivery details before payment.');
     }
@@ -147,6 +147,7 @@ class CustomerAccountController extends Controller
         }
 
         $summary = $this->buildCheckoutSummary($items);
+        $this->storePendingCheckoutSnapshot($items, $summary, ['user_id' => auth()->id()], 'cart', $items->pluck('id')->all());
         session(['checkout_selected_ids' => $items->pluck('id')->all()]);
 
         $requestedAmount = $request->input('payable_amount');
@@ -194,6 +195,7 @@ class CustomerAccountController extends Controller
         $summary = $this->buildCheckoutSummary($items);
         $currency = config('app.currency', env('APP_CURRENCY', 'INR'));
         $paymentMethod = $validated['payment_method'];
+        $this->storePendingCheckoutSnapshot($items, $summary, $delivery, $paymentMethod, $items->pluck('id')->all());
         session(['checkout_selected_ids' => $items->pluck('id')->all()]);
 
         $requestedAmount = $request->input('payable_amount');
@@ -295,18 +297,20 @@ class CustomerAccountController extends Controller
             return redirect()->route('customer.cart')->with('error', 'Payment could not be verified. Your cart is intact — please try again.');
         }
 
-        $items = $this->selectedCartItems($request);
+        $pendingCheckout = session('pending_checkout');
+        $items = $this->itemsFromPendingCheckout($pendingCheckout, $request);
 
         if ($items->isEmpty()) {
             return redirect()->route('customer.cart')->with('error', 'Please select at least one product to continue.');
         }
 
-        $summary = $this->buildCheckoutSummary($items);
+        $summary = $pendingCheckout['summary'] ?? $this->buildCheckoutSummary($items);
+        $delivery = $pendingCheckout['delivery'] ?? $delivery;
 
         DB::transaction(function () use ($items, $summary, $validated, $transaction, $delivery) {
             $order = Order::create([
                 'user_id'          => auth()->id(),
-                'branch_id'        => $delivery['branch_id'],
+                'branch_id'        => $delivery['branch_id'] ?? null,
                 'order_number'     => 'ORD-' . strtoupper(uniqid()),
                 'total_amount'     => $summary['grand_total'],
                 'status'           => 'pending',
@@ -318,14 +322,15 @@ class CustomerAccountController extends Controller
             ]);
 
             foreach ($items as $item) {
-                $product = $item->product_id ? Product::find($item->product_id) : Product::where('name', $item->product_name)->first();
+                $productId = data_get($item, 'product_id');
+                $product = $productId ? Product::find($productId) : Product::where('name', data_get($item, 'product_name'))->first();
 
                 OrderItem::create([
                     'order_id'   => $order->id,
                     'product_id' => $product?->id,
-                    'quantity'   => $item->quantity,
-                    'price'      => $item->price,
-                    'subtotal'   => $item->price * $item->quantity,
+                    'quantity'   => (int) data_get($item, 'quantity', 1),
+                    'price'      => (float) data_get($item, 'price', 0),
+                    'subtotal'   => (float) data_get($item, 'price', 0) * (int) data_get($item, 'quantity', 1),
                 ]);
             }
 
@@ -343,10 +348,12 @@ class CustomerAccountController extends Controller
                 ],
             ]);
 
-            CartItem::whereIn('id', $items->pluck('id')->all())->delete();
+            if (is_array($pendingCheckout['checkout_selected_ids'] ?? null)) {
+                CartItem::whereIn('id', array_filter(array_map('intval', $pendingCheckout['checkout_selected_ids'])))->delete();
+            }
         });
 
-        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
+        session()->forget(['checkout_selected_ids', 'checkout_delivery', 'direct_buy_now', 'pending_checkout']);
 
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully. Payment completed.');
     }
@@ -569,7 +576,57 @@ class CustomerAccountController extends Controller
     private function selectedCartItems(Request $request)
     {
         $selectedIds = $request->input('selected_items', session('checkout_selected_ids', []));
-        $selectedIds = array_filter(array_map('intval', (array) $selectedIds));
+
+        $requestHasSelectedItems = $request->has('selected_items');
+        $directBuyNow = session('direct_buy_now');
+
+        if (! $requestHasSelectedItems && is_array($directBuyNow) && ! empty($directBuyNow['product_id'])) {
+            $product = Product::find($directBuyNow['product_id']);
+            if ($product) {
+                return collect([
+                    (object) [
+                        'id' => 'buy-now-' . $product->id,
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'product_category' => $product->category,
+                        'price' => (float) $product->price,
+                        'quantity' => (int) ($directBuyNow['quantity'] ?? 1),
+                        'image_url' => $this->resolveProductImageUrl($product),
+                    ],
+                ]);
+            }
+        }
+
+        if (is_array($selectedIds) && ! empty($selectedIds)) {
+            $normalized = []; 
+            foreach ($selectedIds as $selectedId) {
+                if (is_string($selectedId) && str_starts_with($selectedId, 'buy-now-')) {
+                    $directBuyNow = session('direct_buy_now');
+                    if (is_array($directBuyNow) && ! empty($directBuyNow['product_id'])) {
+                        $product = Product::find($directBuyNow['product_id']);
+                        if ($product) {
+                            return collect([
+                                (object) [
+                                    'id' => $selectedId,
+                                    'product_id' => $product->id,
+                                    'product_name' => $product->name,
+                                    'product_category' => $product->category,
+                                    'price' => (float) $product->price,
+                                    'quantity' => (int) ($directBuyNow['quantity'] ?? 1),
+                                    'image_url' => $this->resolveProductImageUrl($product),
+                                ],
+                            ]);
+                        }
+                    }
+                }
+
+                $normalized[] = (int) $selectedId;
+            }
+
+            $selectedIds = array_values(array_filter($normalized, fn ($id) => $id > 0));
+        } else {
+            $selectedIds = array_filter(array_map('intval', (array) $selectedIds));
+        }
 
         if (empty($selectedIds)) {
             return collect();
@@ -717,7 +774,7 @@ class CustomerAccountController extends Controller
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
 
-        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
+        session()->forget(['checkout_selected_ids', 'checkout_delivery', 'direct_buy_now']);
 
         return redirect()->route('customer.orders')->with('success', 'Order placed successfully.');
     }
@@ -755,7 +812,7 @@ class CustomerAccountController extends Controller
             CartItem::whereIn('id', $items->pluck('id')->all())->delete();
         });
 
-        session()->forget(['checkout_selected_ids', 'checkout_delivery']);
+        session()->forget(['checkout_selected_ids', 'checkout_delivery', 'direct_buy_now']);
 
         return redirect()->route('customer.orders')->with('success', 'COD order placed successfully. Collect cash on delivery after delivery.');
     }
@@ -763,6 +820,48 @@ class CustomerAccountController extends Controller
     private function paymentGatewayEnabled(): bool
     {
         return ! empty(config('services.razorpay.key_id')) && ! empty(config('services.razorpay.key_secret')) && str_contains(strtolower((string) config('services.razorpay.gateway', 'razorpay')), 'razorpay');
+    }
+
+    private function storePendingCheckoutSnapshot($items, array $summary, array $delivery = [], ?string $paymentMethod = null, array $selectedIds = []): void
+    {
+        session(['pending_checkout' => [
+            'user_id' => auth()->id(),
+            'type' => 'cart',
+            'items' => collect($items)->map(function ($item) {
+                return [
+                    'id' => data_get($item, 'id'),
+                    'product_id' => data_get($item, 'product_id'),
+                    'product_name' => data_get($item, 'product_name'),
+                    'product_category' => data_get($item, 'product_category'),
+                    'price' => (float) data_get($item, 'price', 0),
+                    'quantity' => (int) data_get($item, 'quantity', 1),
+                    'image_url' => data_get($item, 'image_url'),
+                ];
+            })->values()->all(),
+            'summary' => $summary,
+            'delivery' => $delivery,
+            'payment_method' => $paymentMethod,
+            'checkout_selected_ids' => $selectedIds,
+        ]]);
+    }
+
+    private function itemsFromPendingCheckout(?array $pendingCheckout, Request $request): \Illuminate\Support\Collection
+    {
+        if (is_array($pendingCheckout) && ! empty($pendingCheckout['items'])) {
+            return collect($pendingCheckout['items'])->map(function ($item) {
+                return (object) [
+                    'id' => data_get($item, 'id'),
+                    'product_id' => data_get($item, 'product_id'),
+                    'product_name' => data_get($item, 'product_name'),
+                    'product_category' => data_get($item, 'product_category'),
+                    'price' => (float) data_get($item, 'price', 0),
+                    'quantity' => (int) data_get($item, 'quantity', 1),
+                    'image_url' => data_get($item, 'image_url'),
+                ];
+            });
+        }
+
+        return $this->selectedCartItems($request);
     }
 
     private function hasSavedAddress($user): bool

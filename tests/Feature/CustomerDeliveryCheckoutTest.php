@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CartItem;
 use App\Models\Branch;
 use App\Models\Product;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -267,6 +268,73 @@ class CustomerDeliveryCheckoutTest extends TestCase
         $this->get(route('customer.checkout'))->assertOk()->assertViewIs('customer.checkout-review');
     }
 
+    public function test_branch_resolver_accepts_latitude_and_longitude_arrays(): void
+    {
+        Branch::create([
+            'name' => 'Lat Long Branch',
+            'address' => 'Kolkata, India',
+            'latitude' => 22.5726,
+            'longitude' => 88.3639,
+        ]);
+
+        $resolver = new \App\Services\BranchResolverService();
+        $nearest = $resolver->resolveNearestBranchToCoordinates([
+            'latitude' => 22.5726,
+            'longitude' => 88.3639,
+        ]);
+
+        $this->assertNotNull($nearest);
+        $this->assertContains($nearest->name, ['Test Branch', 'Lat Long Branch']);
+    }
+
+    public function test_buy_now_keeps_cart_unchanged_and_uses_single_quantity_for_direct_checkout(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+        $this->actingAs($user);
+
+        $existingProduct = Product::create([
+            'name' => 'Existing Cart Plant',
+            'type' => 'plant',
+            'category' => 'Outdoor',
+            'price' => 299,
+            'stock' => 7,
+        ]);
+
+        CartItem::create([
+            'user_id' => $user->id,
+            'session_id' => session()->getId(),
+            'product_id' => $existingProduct->id,
+            'product_name' => $existingProduct->name,
+            'price' => $existingProduct->price,
+            'quantity' => 1,
+        ]);
+
+        $buyNowProduct = Product::create([
+            'name' => 'Buy Now Plant',
+            'type' => 'plant',
+            'category' => 'Indoor',
+            'price' => 399,
+            'stock' => 5,
+        ]);
+
+        $this->post(route('customer.buy-now'), [
+            'product_id' => $buyNowProduct->id,
+            'quantity' => 2,
+        ])->assertRedirect(route('customer.checkout'));
+
+        $this->assertDatabaseCount('cart_items', 1);
+        $this->assertDatabaseHas('cart_items', [
+            'product_name' => 'Existing Cart Plant',
+            'quantity' => 1,
+        ]);
+
+        $response = $this->get(route('customer.checkout'));
+        $response->assertOk()->assertViewIs('customer.checkout-review');
+        $response->assertSee('Buy Now Plant');
+        $response->assertSee('Qty 1 ×');
+        $response->assertDontSee('Existing Cart Plant');
+    }
+
     public function test_direct_payment_route_without_review_is_blocked(): void
     {
         $user = User::factory()->create(['role' => 'customer']);
@@ -281,6 +349,114 @@ class CustomerDeliveryCheckoutTest extends TestCase
         $response->assertRedirect(route('customer.checkout'));
         $response->assertSessionHasErrors(['name', 'house_no', 'street', 'city', 'state', 'pincode', 'country']);
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_verified_razorpay_payment_finalizes_order_from_pending_checkout_session(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'name' => 'Verified Customer',
+            'phone' => '+919876543210',
+            'house_no' => '22B',
+            'street' => 'Nursery Lane',
+            'city' => 'Kolkata',
+            'state' => 'West Bengal',
+            'pincode' => '700001',
+            'country' => 'India',
+        ]);
+        $this->actingAs($user);
+
+        $product = Product::create([
+            'name' => 'Session Checkout Plant',
+            'type' => 'plant',
+            'category' => 'Indoor',
+            'price' => 799,
+            'stock' => 6,
+        ]);
+
+        $delivery = [
+            'name' => 'Verified Customer',
+            'house_no' => '22B',
+            'street' => 'Nursery Lane',
+            'city' => 'Kolkata',
+            'state' => 'West Bengal',
+            'pincode' => '700001',
+            'country' => 'India',
+            'phone' => '+919876543210',
+            'shipping_address' => "Verified Customer\n22B, Nursery Lane\nKolkata, West Bengal - 700001\nIndia",
+            'branch_id' => Branch::query()->value('id'),
+        ];
+
+        $summary = [
+            'subtotal' => 799.0,
+            'delivery' => 20.0,
+            'gst' => 143.82,
+            'grand_total' => 962.82,
+            'amount_in_paise' => 96282,
+        ];
+
+        session([
+            'checkout_delivery' => $delivery,
+            'pending_checkout' => [
+                'user_id' => $user->id,
+                'type' => 'cart',
+                'items' => [[
+                    'id' => 1,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'product_category' => $product->category,
+                    'price' => 799.0,
+                    'quantity' => 1,
+                    'image_url' => null,
+                ]],
+                'summary' => $summary,
+                'delivery' => $delivery,
+                'payment_method' => 'upi',
+                'checkout_selected_ids' => [1],
+            ],
+        ]);
+
+        $orderId = 'order_session_123';
+        $paymentId = 'pay_session_456';
+        $secret = 'test-secret';
+        Config::set('services.razorpay.key_secret', $secret);
+
+        Transaction::create([
+            'user_id' => $user->id,
+            'subscription_id' => null,
+            'order_id' => null,
+            'transaction_id' => $orderId,
+            'amount' => 962.82,
+            'payment_method' => 'upi',
+            'payment_gateway' => 'razorpay',
+            'status' => 'pending',
+            'payment_details' => [
+                'gateway' => 'razorpay',
+                'order_id' => $orderId,
+                'type' => 'cart_checkout',
+            ],
+            'gateway_response' => ['id' => $orderId],
+            'response' => null,
+        ]);
+
+        $response = $this->post(route('customer.checkout.verify'), [
+            'payment_method' => 'upi',
+            'razorpay_payment_id' => $paymentId,
+            'razorpay_order_id' => $orderId,
+            'razorpay_signature' => hash_hmac('sha256', $orderId . '|' . $paymentId, $secret),
+        ]);
+
+        $response->assertRedirect(route('customer.orders'));
+        $this->assertDatabaseHas('orders', [
+            'user_id' => $user->id,
+            'branch_id' => $delivery['branch_id'],
+            'contact_phone' => '+919876543210',
+            'payment_status' => 'paid',
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
     }
 
     private function createCartItem(User $user): CartItem

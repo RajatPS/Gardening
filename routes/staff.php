@@ -3,6 +3,7 @@
 use App\Http\Controllers\Staff\StaffAuthController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\Staff\OrderController;
+use App\Http\Controllers\Staff\StaffProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('staff')->name('staff.')->group(function () {
@@ -22,6 +23,9 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('change-password', [StaffAuthController::class, 'changePasswordForm'])->name('change-password');
         Route::post('change-password', [StaffAuthController::class, 'changePassword'])->name('change-password.post');
         Route::get('dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
+        Route::get('profile', [StaffProfileController::class, 'edit'])->name('profile');
+        Route::put('profile', [StaffProfileController::class, 'update'])->name('profile.update');
+        Route::post('profile/location', [StaffProfileController::class, 'updateLocation'])->name('profile.location');
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');

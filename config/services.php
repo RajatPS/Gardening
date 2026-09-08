@@ -73,4 +73,8 @@ return [
         'key_secret' => env('RAZORPAY_KEY_SECRET'),
     ],
 
+    'geoapify' => [
+        'key' => env('GEOAPIFY_API_KEY'),
+    ],
+
 ];

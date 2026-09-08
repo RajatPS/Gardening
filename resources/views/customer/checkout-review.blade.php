@@ -129,17 +129,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-6">
-                        <label for="payment_method" class="text-sm font-semibold text-slate-700">Payment method</label>
-                        <select id="payment_method" name="payment_method" class="mt-2 block w-full rounded-md border-slate-300 bg-white shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="upi">UPI</option>
-                            <option value="qr">QR Code</option>
-                            <option value="card">Card</option>
-                            <option value="netbanking">Net Banking</option>
-                            <option value="wallet">Wallet</option>
-                            <option value="cash">Cash / Manual</option>
-                        </select>
-                    </div>
+                    <input type="hidden" name="payment_method" value="upi">
                     <button type="submit" class="mt-6 w-full rounded-md bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">Continue to payment</button>
                     <p class="mt-3 text-center text-xs leading-5 text-slate-500">Payment begins only after your delivery details pass server-side validation.</p>
                 </aside>

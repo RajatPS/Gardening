@@ -50,6 +50,8 @@ class User extends Authenticatable implements CanResetPasswordContract
         'profile_image',
         'city',
         'branch_id',
+        'latitude',
+        'longitude',
         'staff_id',
         'capabilities',
         'current_duty',

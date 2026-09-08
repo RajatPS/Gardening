@@ -56,10 +56,15 @@
             <h2 class="mb-1">Staff Dashboard</h2>
             <p class="text-muted mb-0">Welcome, {{ $staff->name }}</p>
         </div>
-        <form method="POST" action="{{ route('staff.logout') }}">
-            @csrf
-            <button type="submit" class="btn btn-outline-danger btn-logout">Logout</button>
-        </form>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('staff.profile') }}" class="btn btn-outline-primary" title="My Profile" aria-label="My Profile">
+                <i class="fas fa-user"></i>
+            </a>
+            <form method="POST" action="{{ route('staff.logout') }}">
+                @csrf
+                <button type="submit" class="btn btn-outline-danger btn-logout">Logout</button>
+            </form>
+        </div>
     </div>
 
     <div class="row g-3 mb-4">

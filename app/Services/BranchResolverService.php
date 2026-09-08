@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\Log;
 class BranchResolverService
 {
     private LocationDistanceService $distanceService;
+    private GeoapifyGeocodingService $geoapifyService;
 
-    public function __construct(?LocationDistanceService $distanceService = null)
+    public function __construct(?LocationDistanceService $distanceService = null, ?GeoapifyGeocodingService $geoapifyService = null)
     {
         $this->distanceService = $distanceService ?? new LocationDistanceService();
+        $this->geoapifyService = $geoapifyService ?? new GeoapifyGeocodingService();
     }
 
     public function resolveCustomerLocation(?string $address, ?string $city, ?string $pinCode): ?array
@@ -33,14 +35,19 @@ class BranchResolverService
         $parts[] = 'India';
         $locationQuery = implode(', ', array_unique($parts));
 
+        $geoapifyLocation = $this->normalizeCoordinates($this->geoapifyService->geocode($parts) ?? []);
+        if ($geoapifyLocation !== null) {
+            return $geoapifyLocation;
+        }
+
         if (trim($locationQuery) !== '') {
-            $location = $this->distanceService->geocodeLocation($locationQuery);
+            $location = $this->normalizeCoordinates($this->distanceService->geocodeLocation($locationQuery) ?? []);
             if ($location !== null) {
                 return $location;
             }
         }
 
-        return $this->resolveFallbackCustomerLocation($address, $city, $pinCode);
+        return $this->normalizeCoordinates($this->resolveFallbackCustomerLocation($address, $city, $pinCode) ?? []);
     }
 
     private function resolveFallbackCustomerLocation(?string $address, ?string $city, ?string $pinCode): ?array
@@ -80,6 +87,11 @@ class BranchResolverService
 
     public function resolveNearestBranchToCoordinates(array $customerLocation): ?Branch
     {
+        $normalizedCustomerLocation = $this->normalizeCoordinates($customerLocation);
+        if ($normalizedCustomerLocation === null) {
+            return null;
+        }
+
         $branches = Branch::all();
         if ($branches->isEmpty()) {
             return null;
@@ -89,13 +101,13 @@ class BranchResolverService
         $shortestDistance = null;
 
         foreach ($branches as $branch) {
-            $branchLocation = $this->getBranchLocation($branch);
+            $branchLocation = $this->normalizeCoordinates($this->getBranchLocation($branch) ?? []);
 
             if ($branchLocation === null) {
                 continue;
             }
 
-            $distance = $this->distanceKm($customerLocation, $branchLocation);
+            $distance = $this->distanceKm($normalizedCustomerLocation, $branchLocation);
 
             if ($shortestDistance === null || $distance < $shortestDistance) {
                 $nearestBranch = $branch;
@@ -104,6 +116,38 @@ class BranchResolverService
         }
 
         return $nearestBranch;
+    }
+
+    public function resolveNearestBranchWithDistance(array $location): ?array
+    {
+        $normalizedLocation = $this->normalizeCoordinates($location);
+        if ($normalizedLocation === null) {
+            return null;
+        }
+
+        $nearestBranch = null;
+        $shortestDistance = null;
+
+        foreach (Branch::query()->whereNotNull('latitude')->whereNotNull('longitude')->get() as $branch) {
+            $distance = $this->distanceKm($normalizedLocation, [
+                'lat' => (float) $branch->latitude,
+                'lon' => (float) $branch->longitude,
+            ]);
+
+            if ($shortestDistance === null || $distance < $shortestDistance) {
+                $nearestBranch = $branch;
+                $shortestDistance = $distance;
+            }
+        }
+
+        if ($nearestBranch === null) {
+            return null;
+        }
+
+        return [
+            'branch' => $nearestBranch,
+            'distance_km' => $shortestDistance,
+        ];
     }
 
     private function getBranchLocation(Branch $branch): ?array
@@ -130,11 +174,18 @@ class BranchResolverService
 
     private function distanceKm(array $from, array $to): float
     {
+        $normalizedFrom = $this->normalizeCoordinates($from);
+        $normalizedTo = $this->normalizeCoordinates($to);
+
+        if ($normalizedFrom === null || $normalizedTo === null) {
+            return INF;
+        }
+
         $earthRadiusKm = 6371;
-        $latFrom = deg2rad((float) $from['lat']);
-        $lonFrom = deg2rad((float) $from['lon']);
-        $latTo = deg2rad((float) $to['lat']);
-        $lonTo = deg2rad((float) $to['lon']);
+        $latFrom = deg2rad((float) $normalizedFrom['lat']);
+        $lonFrom = deg2rad((float) $normalizedFrom['lon']);
+        $latTo = deg2rad((float) $normalizedTo['lat']);
+        $lonTo = deg2rad((float) $normalizedTo['lon']);
 
         $deltaLat = $latTo - $latFrom;
         $deltaLon = $lonTo - $lonFrom;
@@ -143,5 +194,24 @@ class BranchResolverService
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadiusKm * $c;
+    }
+
+    private function normalizeCoordinates(?array $coordinates): ?array
+    {
+        if (! is_array($coordinates)) {
+            return null;
+        }
+
+        $lat = $coordinates['lat'] ?? $coordinates['latitude'] ?? null;
+        $lon = $coordinates['lon'] ?? $coordinates['longitude'] ?? null;
+
+        if ($lat === null || $lon === null) {
+            return null;
+        }
+
+        return [
+            'lat' => (float) $lat,
+            'lon' => (float) $lon,
+        ];
     }
 }
